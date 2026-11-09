@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Du lieu sinh ra khi chay (khong commit, tru .gitkeep)
+data/processed/*
+!data/processed/.gitkeep
+outputs/*
+!outputs/.gitkeep
+models/*.joblib
+models/*.keras
+models/*.h5
+models/*.pkl
+!models/.gitkeep
+artifacts/*
+
+# He dieu hanh / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.code-workspace
+
+# Nhat ky
+*.log
