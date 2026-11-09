@@ -144,7 +144,9 @@ TYPE(scope): summary
 3. **Tuân theo `.gitignore`:** file trong `data/processed/*`, `outputs/*` và
    mô hình trong `models/*` (trừ `.gitkeep`) không bao giờ được add vào git.
 4. **Hợp đồng dữ liệu:** file CSV phải có cột mục tiêu `price` và 18 cột đặc trưng
-   như mô tả trong [docs/king-county-dataset.md](docs/king-county-dataset.md).
+   gốc, sau kỹ thuật đặc trưng thành 19 cột đầu vào (18 số + `zipcode`) như mô tả
+   trong [docs/king-county-dataset.md](docs/king-county-dataset.md), sau mã hóa
+   one-hot thành 88 cột đưa vào mô hình.
    Cột `id`, `date` và cột index `Unnamed: 0` phải loại khỏi tập huấn luyện.
 
 ---
@@ -153,10 +155,12 @@ TYPE(scope): summary
 
 1. **Tính xác định (Determinism):** luôn đặt `random_state=42` khi chia dữ liệu
    và khi dùng estimator ngẫu nhiên, để kết quả tái lập được.
-2. **Chống rò rỉ dữ liệu (Data Leakage):** chia train/validation/test TRƯỚC,
-   chỉ fit imputer và scaler trên tập train, rồi transform các tập còn lại.
+2. **Chống rò rỉ dữ liệu (Data Leakage):** chia train/validation/test TRƯỚC
+   (theo nhóm `id` căn nhà), chỉ fit preprocessor (imputer, scaler, one-hot
+   encoder) trên tập train, rồi transform các tập còn lại.
    Không dùng tập test để chọn mô hình hay chỉnh siêu tham số.
-   Xem [docs/adr/003-chia-train-validation-test.md](docs/adr/003-chia-train-validation-test.md).
+   Xem [docs/adr/003-chia-train-validation-test.md](docs/adr/003-chia-train-validation-test.md)
+   và [docs/adr/005-chia-theo-nhom-id.md](docs/adr/005-chia-theo-nhom-id.md).
 3. **Chỉ số hồi quy:** đây là bài toán Hồi quy. Dùng MSE, RMSE, MAE, R2, MAPE.
    Không dùng accuracy, precision, recall, F1 (chỉ số phân loại).
    MSE, RMSE, MAE càng nhỏ càng tốt; R2 càng lớn càng tốt và có thể âm.

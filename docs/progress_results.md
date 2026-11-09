@@ -18,6 +18,35 @@ công đoạn. Không ghi kết quả chưa chạy như kết quả đã kiểm 
   validation) thành train/validation/test 70/15/15, fit scaler chỉ trên train.
   Xem `docs/adr/003-chia-train-validation-test.md`.
 
+## Phase 2 - Tiền xử lý (Student 1, ngày 09/11/2026)
+
+- Viết lại `src/house_price/preprocessing.py`: thêm `engineer_features`
+  (`house_age`, `was_renovated`, `sqft_per_bedroom`), `zipcode` mã hóa
+  one-hot, chia tập theo nhóm `id` bằng `GroupShuffleSplit`.
+- Đính chính số liệu Phase 1: số id lặp đúng là 176 (175 id 2 lần,
+  1 id 3 lần), 177 là số dòng thừa, không phải số id lặp.
+- Hợp đồng dữ liệu đổi từ 18 đặc trưng thành 19 cột đầu vào
+  (18 số + `zipcode`); đầu ra preprocessor là 88 cột (18 số + one-hot
+  70 zipcode). Xem `docs/adr/005-chia-theo-nhom-id.md` và
+  `docs/adr/006-feature-engineering-va-zipcode.md`.
+- Chia theo nhóm id: train 15.129, validation 3.243, test 3.241 dòng,
+  số id trùng nhau giữa các tập là 0.
+- Môi trường kiểm chứng: Python 3.12.3, sklearn 1.9.1, pandas 3.1.1,
+  numpy 2.5.4. Test 35/35 pass; `ruff check` và `ruff format` sạch.
+- Không xóa dòng nào trong toàn bộ Phase 2.
+
+### Kiểm chứng tương thích pipeline (không phải kết quả cuối cùng)
+
+Linear Regression chạy trên pipeline mới chỉ để kiểm tra pipeline chạy
+tròn đầu đến cuối, KHÔNG phải kết quả cuối cùng của bài tập:
+
+| Mô hình | MSE | RMSE | MAE | R2 |
+|---|---:|---:|---:|---:|
+| Linear Regression (kiểm chứng pipeline) | 2,656187e10 | 162.978 | 97.867 | 0,8153 |
+
+Số R2 0,697 của Phase 1 đo trên pipeline cũ (18 đặc trưng, chia ngẫu
+nhiên, `zipcode` dạng số) và đã lỗi thời, không so sánh với số trên.
+
 ## Kết quả thực nghiệm
 
 **CHƯA CÓ KẾT QUẢ.** Chưa huấn luyện mô hình nào trong Phase 1.
@@ -37,4 +66,5 @@ Bảng dưới đây chỉ là khung chờ, Sinh viên 3 điền số thật sau
 - Các số liệu demo giá dự đoán trong DESIGN.md mục 6.2 (ví dụ 542.300 USD)
   là số minh họa, không phải kết quả đo được. Không trích dẫn chúng
   như kết quả thực nghiệm.
-- `zipcode` đang xử lý như số liên tục; Sinh viên 1 cần chốt cách xử lý.
+- `zipcode` đã chốt ở Phase 2: mã hóa one-hot 70 mã, không còn xử lý
+  như số liên tục; xem `adr/006-feature-engineering-va-zipcode.md`.

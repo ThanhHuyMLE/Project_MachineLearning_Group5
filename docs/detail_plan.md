@@ -4,9 +4,9 @@
 |---|---|---|
 | 1 | Đọc đề Bài tập 4 và [DESIGN.md](DESIGN.md) | Xác định bài toán Hồi quy, 4 mô hình, 14 bước |
 | 2 | Kiểm tra dữ liệu King County | Có nguồn, số mẫu, phân bố giá, kiểm tra thiếu/trùng |
-| 3 | Làm sạch và bù khuyết | Hàm ngắn, bù median, loại cột id/date/index |
-| 4 | Chia tập | Train/validation/test 70/15/15, seed 42, không trùng mẫu |
-| 5 | Chuẩn hóa | StandardScaler chỉ fit trên train, cùng số cột cho val/test |
+| 3 | Làm sạch và kỹ thuật đặc trưng | `house_age`, `was_renovated`, `sqft_per_bedroom`, loại cột id/date/index |
+| 4 | Chia tập | Train/validation/test 70/15/15, seed 42, chia theo nhóm id, không trùng id giữa các tập |
+| 5 | Chuẩn hóa | ColumnTransformer chỉ fit trên train (số: median + StandardScaler; zipcode: one-hot), 88 cột đầu ra cho cả 3 tập |
 | 6 | Viết class mô hình | Đủ 4 phương thức, build riêng trước fit, predict báo lỗi khi chưa fit |
 | 7 | Huấn luyện MLP | Fit trên train, theo dõi MSE/MAE trên validation |
 | 8 | Huấn luyện 3 mô hình đối chiếu | Cùng tập train/val/test, cùng quy trình đánh giá |
@@ -27,10 +27,13 @@ y_pred = model.predict(X_test)
 
 ## Tham số giữ cố định
 
-- Chia tập: train/validation/test = 70/15/15, `random_state=42`.
-  Hồi quy không có nhãn lớp nên không stratify; chỉ xáo trộn ngẫu nhiên.
-- Tiền xử lý: bù khuyết `bedrooms`, `bathrooms` bằng median của tập train;
-  chuẩn hóa bằng `StandardScaler` fit trên train.
+- Chia tập: train/validation/test = 70/15/15, `random_state=42`,
+  chia theo nhóm `id` bằng `GroupShuffleSplit`.
+  Hồi quy không có nhãn lớp nên không stratify.
+- Tiền xử lý: kỹ thuật đặc trưng `house_age`, `was_renovated`,
+  `sqft_per_bedroom`; bù khuyết `bedrooms`, `bathrooms` bằng median
+  của tập train; chuẩn hóa bằng `StandardScaler` fit trên train;
+  `zipcode` mã hóa one-hot 70 mã.
 - MLP mặc định: hidden layers (32, 16), activation relu, output linear,
   optimizer Adam, loss MSE, epochs 100, batch size 32 (theo đề bài).
 - Không chỉnh siêu tham số dựa trên điểm test. Chỉ dùng validation để chọn.
