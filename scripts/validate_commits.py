@@ -850,6 +850,14 @@ def emit_github_annotations(
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Console Windows mặc định dùng cp1252, không in được emoji (✅/❌) và
+    # tiếng Việt có dấu nên print() sẽ crash (UnicodeEncodeError).
+    # Chuyển stdout/stderr sang UTF-8; trên Linux/macOS không đổi gì.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(
         description="Validate commit messages and PR title against project convention."
     )
