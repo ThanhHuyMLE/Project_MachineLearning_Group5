@@ -92,6 +92,28 @@ Hai cột gốc `yr_built` và `yr_renovated` không đưa trực tiếp vào m�
 - Giá trung bình theo `view` (USD): 0: 496.564, 1: 812.281, 2: 792.401, 3: 971.965, 4: 1.463.711.
 - `zipcode` có 70 mã (98.001-98.199), mỗi mã ít nhất 50 dòng, nhiều nhất 602 dòng. Giá trung bình theo zipcode 234.284-2.160.606 USD: vị trí địa lý ảnh hưởng lớn đến giá.
 
+### EDA mô tả và EDA phục vụ phát triển mô hình
+
+- Hai mục đích này khác nhau và phải tách rõ. **EDA mô tả** (descriptive EDA)
+  dùng toàn bộ dataset để hiểu dữ liệu nguồn: mọi con số trong mục 8 này
+  (tương quan, giá trung bình theo grade/view/waterfront/zipcode) đều tính trên
+  toàn bộ 21.613 dòng, và 7 biểu đồ trong `outputs/eda/` cũng vẽ từ toàn bộ dữ liệu.
+- **EDA phục vụ phát triển mô hình** (model-development EDA) dùng để quyết định
+  chọn feature, loại outlier hay biến đổi dữ liệu. Phần này chỉ được tính trên
+  tập train, vì nếu dùng số liệu toàn tập (đã gồm test) để ra quyết định thì
+  test đã gián tiếp tham gia vào quyết định mô hình (decision leakage), làm
+  điểm đánh giá trên test lạc quan hơn thực tế.
+- Kiểm chứng đã làm sau khi chia tập: tính lại tương quan với `price` và giá
+  trung bình theo grade chỉ trên train (15.129 dòng) rồi so với số toàn tập.
+  Tương quan chênh lệch tối đa 0,007, thứ hạng các feature không đổi. Giá trung
+  bình theo grade chênh lệch tối đa 6,5% (grade 4, n=29), còn lại không quá 2%,
+  vẫn tăng đơn điệu theo grade. Kết luận: các quyết định ở mục 9 không đổi nếu
+  chỉ dùng train. Ngoại lệ cần ghi rõ: grade 1 chỉ có 1 dòng nên không có mặt
+  trong train (dòng đó rơi vào validation/test).
+- Quy tắc cho SV2/SV3/SV4 từ đây trở đi: mọi phân tích phục vụ chọn mô hình,
+  chọn ngưỡng hay biến đổi dữ liệu phải tính trên train (hoặc train + validation),
+  không tính lại trên toàn tập hay trên test.
+
 ## 9. Feature engineering
 
 - `house_age = năm bán - yr_built`, kẹp tối thiểu 0. Khoảng -1 đến 115, trung vị 40, trung bình 43,3; 12 giá trị âm được kẹp về 0. Tương quan với `price` là -0,054. Thay thế `yr_built` vì hai cột gần như trùng thông tin trong cùng một năm bán.
@@ -124,6 +146,10 @@ z = (x - mean_train) / std_train
 - Thứ tự bắt buộc: kỹ thuật đặc trưng (không fit gì) -> chia tập theo nhóm id -> fit preprocessor chỉ trên train -> transform val/test.
 - Imputer (median), scaler (mean/std) và one-hot encoder (tập mã zipcode) chỉ học từ train. Dữ liệu mới dùng đúng preprocessor đã fit.
 - `id` không thành feature. Không dùng `price` để tạo đặc trưng.
+- Rò rỉ quyết định: không chỉ thống kê fit (imputer, scaler, encoder) mà cả
+  quyết định chọn feature, loại outlier hay biến đổi dữ liệu cũng không được
+  dựa trên test. Xem cách tách EDA mô tả và EDA phục vụ phát triển mô hình
+  ở mục 8.
 - Chọn mô hình và siêu tham số chỉ trên validation. Tập test chỉ dùng
   một lần cuối để đánh giá.
 
@@ -153,3 +179,7 @@ z = (x - mean_train) / std_train
 - Dòng 33 phòng ngủ trên 1.620 sqft vẫn giữ lại dù nghi ngờ nhập liệu.
 - Phân bố `price` lệch phải mạnh; chưa thử biến đổi log cho mục tiêu,
   đó là việc của giai đoạn mô hình nếu cần.
+- Các số EDA mô tả ở mục 8 tính trên toàn bộ dataset; việc kiểm chứng lại
+  trên train (xem mục 8) làm sau khi chia tập, chỉ để xác nhận quyết định
+  không đổi. Đúng trình tự lý tưởng là tính EDA phục vụ quyết định trên train
+  ngay từ đầu, nhóm cần tuân thủ trình tự này ở các giai đoạn sau.
