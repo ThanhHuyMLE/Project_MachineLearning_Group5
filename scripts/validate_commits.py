@@ -731,7 +731,7 @@ def format_cli_report(
 
     if pr_title_failure:
         output.append("=" * 80)
-        output.append("❌ PR Title Validation Failed!")
+        output.append("PR Title Validation Failed!")
         output.append("=" * 80)
         output.append(f"PR Title: {pr_title_failure.message}")
         output.append("\nErrors:")
@@ -749,7 +749,7 @@ def format_cli_report(
 
     if failures:
         output.append("=" * 80)
-        output.append("❌ Commit Message Validation Failed!")
+        output.append("Commit Message Validation Failed!")
         output.append("=" * 80)
         for idx, item in enumerate(failures, 1):
             short_sha = item.sha[:7] if item.sha else "unknown"
@@ -780,7 +780,7 @@ def write_github_step_summary(
 
     md_lines: list[str] = []
     if failures or pr_title_failure:
-        md_lines.append("## ❌ Commit Convention Validation Failed\n")
+        md_lines.append("## Commit Convention Validation Failed\n")
         md_lines.append(
             "Every commit in a Pull Request and the PR title must adhere to "
             "[`docs/commit-convention.md`](docs/commit-convention.md).\n"
@@ -823,7 +823,7 @@ def write_github_step_summary(
             md_lines.append("git push --force-with-lease")
             md_lines.append("```\n")
     else:
-        md_lines.append("## ✅ Commit Convention Validation Passed\n")
+        md_lines.append("## Commit Convention Validation Passed\n")
         md_lines.append(
             f"All **{total_commits}** commit(s) and the PR title conform to the project convention."
         )
@@ -850,7 +850,7 @@ def emit_github_annotations(
 
 
 def main(argv: list[str] | None = None) -> int:
-    # Console Windows mặc định dùng cp1252, không in được emoji (✅/❌) và
+    # Console Windows mặc định dùng cp1252, không in được emoji và
     # tiếng Việt có dấu nên print() sẽ crash (UnicodeEncodeError).
     # Chuyển stdout/stderr sang UTF-8; trên Linux/macOS không đổi gì.
     for stream in (sys.stdout, sys.stderr):
@@ -985,7 +985,7 @@ def main(argv: list[str] | None = None) -> int:
         write_github_step_summary(failures, pr_title_failure, total_commits)
         return 1
 
-    print(f"✅ Success: All {total_commits} commit(s) and PR title adhere to convention.")
+    print(f"Success: All {total_commits} commit(s) and PR title adhere to convention.")
     write_github_step_summary([], None, total_commits)
     return 0
 

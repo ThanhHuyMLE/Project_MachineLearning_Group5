@@ -8,7 +8,7 @@ Mọi quy tắc vận hành, quy tắc commit message, quy trình Git và bảo 
 `main`, quy tắc an toàn dữ liệu, chuẩn Machine Learning và lệnh phát triển
 đều tập trung tại một nơi duy nhất:
 
-👉 **[AGENTS.md](AGENTS.md)**
+**[AGENTS.md](AGENTS.md)**
 
 ## Ghi chú riêng cho Claude
 
