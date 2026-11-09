@@ -10,7 +10,9 @@ Linear Regression, Decision Tree Regression, Random Forest Regression.
 
 ## Bài toán
 
-- Đầu vào: 18 đặc trưng mô tả một căn nhà ở King County, Washington, Mỹ.
+- Đầu vào: 19 cột đầu vào sau kỹ thuật đặc trưng (18 số + mã vùng `zipcode`),
+  mô tả một căn nhà ở King County, Washington, Mỹ; sau mã hóa one-hot thành
+  88 cột đưa vào mô hình.
 - Đầu ra: giá bán dự đoán `price` (USD), là giá trị liên tục.
 - Đây là bài toán **Hồi quy (Regression)**, không phải Phân loại (Classification).
 - Dữ liệu: `data/kc_house_data_NaN/data_raw/kc_house_data_NaN.csv`,

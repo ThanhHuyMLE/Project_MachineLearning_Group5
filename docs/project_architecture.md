@@ -28,10 +28,12 @@ Không đổi tên hay gộp hai thư mục này.
 
 ```text
 CSV gốc (21.613 dòng, 22 cột)
-  -> loại cột id/date/index, bù khuyết median
-  -> tách X (18 đặc trưng) và y (price)
-  -> chia train/validation/test 70/15/15 (seed 42)
-  -> StandardScaler chỉ fit trên train, transform val/test
+  -> kỹ thuật đặc trưng: house_age, was_renovated, sqft_per_bedroom
+  -> loại cột id/date/index khỏi X (giữ id làm groups để chia)
+  -> tách X (19 cột đầu vào) và y (price)
+  -> chia train/validation/test 70/15/15 theo nhóm id (seed 42)
+  -> ColumnTransformer fit chỉ trên train: số bù median + StandardScaler,
+     zipcode bù mode + one-hot (70 mã) -> 88 cột đầu ra
   -> 4 mô hình huấn luyện trên train, chọn trên validation
   -> đánh giá cuối cùng trên test, vẽ biểu đồ, lưu outputs/
 ```
@@ -45,14 +47,25 @@ validation, test và nhà mới. Xem
 ### Preprocessing (`preprocessing.py`)
 
 - `load_raw_dataset(path)` -> DataFrame thô.
-- `clean_dataset(df)` -> DataFrame đã loại cột thừa và bù khuyết.
+- `engineer_features(df)` -> DataFrame đã tạo `house_age`, `was_renovated`,
+  `sqft_per_bedroom` (không fit gì, xem `adr/006-feature-engineering-va-zipcode.md`).
+- `clean_dataset(df)` -> DataFrame đã kỹ thuật đặc trưng và loại cột thừa,
+  CHƯA bù khuyết hay chuẩn hóa (hai việc này nằm trong preprocessor).
 - `split_features_target(df)` -> `(X, y)`, `y` là cột `price`.
-- `split_train_val_test(X, y)` -> 6 đối tượng theo tỷ lệ 70/15/15, seed 42.
-- `build_preprocessor(X_train)` -> (imputer, scaler) chỉ fit trên train.
-- `prepare_data(path)` -> dict đầy đủ 3 tập đã chuẩn hóa + preprocessor.
+- `split_train_val_test(X, y, groups=None)` -> 6 đối tượng theo tỷ lệ
+  70/15/15, seed 42. Khi truyền `groups` (mã `id`) thì chia theo nhóm
+  bằng `GroupShuffleSplit`, xem `adr/005-chia-theo-nhom-id.md`.
+- `build_preprocessor(X_train)` -> `ColumnTransformer` đã fit trên train
+  (số: median + `StandardScaler`; `zipcode`: mode + one-hot).
+- `output_feature_names(preprocessor)` -> tên 88 cột sau mã hóa.
+- `prepare_data(path)` -> dict đầy đủ 3 tập đã chuẩn hóa + preprocessor,
+  thêm `input_columns` (19 cột đầu vào trước mã hóa) và `id_train`,
+  `id_val`, `id_test` (chỉ để kiểm chứng chia theo nhóm).
 - Hằng số dùng chung: `TARGET_COLUMN = "price"`,
   `DROP_COLUMNS = ["Unnamed: 0", "id", "date"]`,
-  `FEATURE_COLUMNS` (18 cột, xem `docs/king-county-dataset.md`).
+  `FEATURE_COLUMNS` (19 cột, xem `docs/king-county-dataset.md`),
+  `NUMERIC_COLUMNS` (18 cột số sau kỹ thuật đặc trưng),
+  `CATEGORICAL_COLUMNS = ["zipcode"]`.
 
 ### Mô hình (`models/`)
 

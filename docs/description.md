@@ -2,8 +2,9 @@
 
 ## Bài toán
 
-Dự đoán giá bán nhà ở King County, Washington, Mỹ, từ 18 đặc trưng
-mô tả căn nhà (diện tích, số phòng, chất lượng xây dựng, vị trí...).
+Dự đoán giá bán nhà ở King County, Washington, Mỹ, từ 19 cột đầu vào
+sau kỹ thuật đặc trưng (18 số + mã vùng `zipcode`, từ 18 cột gốc trong
+file CSV) mô tả căn nhà (diện tích, số phòng, chất lượng xây dựng, vị trí...).
 Biến mục tiêu là `price` (USD), một giá trị số liên tục.
 
 Đây là bài toán **Hồi quy (Regression)**, không phải Phân loại (Classification).

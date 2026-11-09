@@ -8,14 +8,16 @@ Chi tiết toán học và giải thích đầy đủ xem `docs/algorithms/`.
 ## Quy trình chung (4 mô hình)
 
 ```text
-ĐẦU VÀO: tập dữ liệu King County, 18 đặc trưng X, mục tiêu y = price
+ĐẦU VÀO: tập dữ liệu King County, 19 cột đầu vào X (18 số + zipcode,
+88 cột sau mã hóa), mục tiêu y = price
 ĐẦU RA: dự đoán y_pred trên tập test, bảng MSE/RMSE/MAE/R2
 
-1. Nạp CSV, loại cột [Unnamed: 0, id, date]
-2. Bù khuyết bedrooms, bathrooms bằng median của tập train
-3. Tách X, y; chia train/validation/test 70/15/15, seed 42
-4. StandardScaler: fit trên train, transform val/test
-5. Với mỗi mô hình: build_model -> fit(train) -> predict(test)
+1. Nạp CSV, kỹ thuật đặc trưng (house_age, was_renovated,
+   sqft_per_bedroom), loại cột [Unnamed: 0, id, date] khỏi X
+2. Tách X, y; chia train/validation/test 70/15/15 theo nhóm id, seed 42
+3. ColumnTransformer: fit trên train (số: median + StandardScaler;
+   zipcode: mode + one-hot), transform val/test
+4. Với mỗi mô hình: build_model -> fit(train) -> predict(test)
 6. Tính MSE, RMSE, MAE, R2 cho từng mô hình trên cùng tập test
 7. So sánh và vẽ biểu đồ Actual vs Predicted
 ```
@@ -23,7 +25,7 @@ Chi tiết toán học và giải thích đầy đủ xem `docs/algorithms/`.
 ## MLP Regression
 
 ```text
-ĐẦU VÀO: X_train (N x 18), y_train, hidden (32, 16), epochs 100, batch 32
+ĐẦU VÀO: X_train (N x 88), y_train, hidden (32, 16), epochs 100, batch 32
 ĐẦU RA: y_pred
 
 THỦ TỤC INIT(hidden_layers, learning_rate):
@@ -49,7 +51,7 @@ HÀM PREDICT(X):
 ## Linear Regression
 
 ```text
-ĐẦU VÀO: X_train (N x 18), y_train
+ĐẦU VÀO: X_train (N x 88), y_train
 ĐẦU RA: y_pred
 
 THỦ TỤC INIT(): lưu hệ số beta <- RỖNG; intercept <- RỖNG

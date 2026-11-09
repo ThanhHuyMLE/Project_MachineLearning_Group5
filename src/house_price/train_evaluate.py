@@ -9,6 +9,7 @@ Chạy: ``python -m house_price.train_evaluate`` từ thư mục gốc repo.
 from __future__ import annotations
 
 import argparse
+import sys
 import warnings
 from pathlib import Path
 
@@ -63,6 +64,15 @@ def train_and_evaluate(data: dict[str, object]) -> tuple[pd.DataFrame, dict[str,
 
 def main(argv: list[str] | None = None) -> int:
     """Entry point: chạy pipeline và lưu kết quả vào outputs/."""
+    # Console Windows mặc định dùng cp1252, không in được tiếng Việt có dấu
+    # nên print()/warnings sẽ crash hoặc in lỗi font (UnicodeEncodeError).
+    # Chuyển stdout/stderr sang UTF-8; trên Linux/macOS không đổi gì.
+    # Lỗi được bỏ qua nếu stream không hỗ trợ reconfigure.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(description="Huấn luyện và đánh giá 4 mô hình Hồi quy.")
     parser.add_argument("--data", default=str(DEFAULT_DATA), help="Đường dẫn file CSV King County")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Thư mục lưu kết quả")
