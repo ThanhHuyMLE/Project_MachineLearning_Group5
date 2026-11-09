@@ -94,6 +94,14 @@ def test_engineer_features_was_renovated_flag():
     assert list(engineered["was_renovated"]) == [0, 1, 0, 1, 0]
 
 
+def test_engineer_features_was_renovated_ignores_renovation_after_sale():
+    frame = _sample_frame(n=5)  # Ngày bán đều là 2015.
+    frame["yr_renovated"] = [0, 2015, 2016, 1990, 0]
+    engineered = engineer_features(frame)
+    # Cải tạo đúng năm bán thì tính, cải tạo sau năm bán (2016) thì không.
+    assert list(engineered["was_renovated"]) == [0, 1, 0, 1, 0]
+
+
 def test_engineer_features_sqft_per_bedroom_handles_zero_and_missing():
     frame = _sample_frame(n=5)
     frame.loc[0, "bedrooms"] = 0

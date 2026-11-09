@@ -107,10 +107,13 @@ def engineer_features(frame: pd.DataFrame) -> pd.DataFrame:
       ``yr_built`` lớn hơn năm bán (tuổi âm, lỗi ghi dữ liệu) được kẹp về 0
       thay vì xóa dòng. Cột ``yr_built`` gốc được thay bằng ``house_age``
       vì hai cột gần như trùng thông tin trong cùng một năm bán.
-    - ``was_renovated = 1`` nếu ``yr_renovated > 0``, ngược lại 0. Quy ước
-      của dữ liệu: 0 nghĩa là chưa từng cải tạo, nên giá trị số của
+    - ``was_renovated = 1`` nếu ``0 < yr_renovated <= năm bán``, ngược lại 0.
+      Quy ước của dữ liệu: 0 nghĩa là chưa từng cải tạo, nên giá trị số của
       ``yr_renovated`` trộn cờ hiệu với năm, không dùng trực tiếp làm
-      đặc trưng số. Cột ``yr_renovated`` gốc được thay bằng cờ này.
+      đặc trưng số. 6 dòng có ``yr_renovated`` lớn hơn năm bán (cải tạo sau
+      khi bán, không thể xảy ra) được tính là chưa cải tạo, giống cách
+      ``house_age`` kẹp tuổi âm về 0. Cột ``yr_renovated`` gốc được thay
+      bằng cờ này.
     - ``sqft_per_bedroom = sqft_living / bedrooms``. Khi ``bedrooms``
       khuyết hoặc bằng 0 thì kết quả là NaN và sẽ được bù bằng median
       của tập train trong preprocessor, không bao giờ chia cho 0.
@@ -123,7 +126,9 @@ def engineer_features(frame: pd.DataFrame) -> pd.DataFrame:
     if raw_needed.issubset(engineered.columns):
         sale_year = pd.to_datetime(engineered["date"], format="%Y%m%dT%H%M%S").dt.year
         engineered["house_age"] = (sale_year - engineered["yr_built"]).clip(lower=0)
-        engineered["was_renovated"] = (engineered["yr_renovated"] > 0).astype(int)
+        engineered["was_renovated"] = (
+            (engineered["yr_renovated"] > 0) & (engineered["yr_renovated"] <= sale_year)
+        ).astype(int)
         bedrooms = engineered["bedrooms"].replace(0, np.nan)
         engineered["sqft_per_bedroom"] = engineered["sqft_living"] / bedrooms
         engineered = engineered.drop(columns=["yr_built", "yr_renovated"])

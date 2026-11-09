@@ -96,7 +96,8 @@ chỉ cần nhớ giá cũ là đoán gần đúng. Vì vậy phải chia theo n
 
 Là tạo đặc trưng mới từ cột gốc để mô hình học dễ hơn. Bài này tạo ba
 đặc trưng: `house_age = năm bán - yr_built` (kẹp tối thiểu 0),
-`was_renovated = 1` nếu `yr_renovated > 0`, và
+`was_renovated = 1` nếu `0 < yr_renovated <= năm bán` (cải tạo sau năm bán
+thì tính là chưa cải tạo), và
 `sqft_per_bedroom = sqft_living / bedrooms`. Ví dụ `house_age` thay
 `yr_built` vì tuổi nhà mới là thứ ảnh hưởng trực tiếp đến giá.
 Không tạo đặc trưng nào từ `price` vì đó là leakage.

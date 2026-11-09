@@ -19,8 +19,9 @@ trung bình theo zipcode dao động 234.284-2.160.606 USD.
 1. `house_age = năm bán - yr_built`, kẹp tối thiểu 0, thay thế `yr_built`.
    Khoảng -1 đến 115, trung vị 40, trung bình 43,3; 12 giá trị âm kẹp
    về 0 thay vì xóa dòng. Tương quan với `price` là -0,054.
-2. `was_renovated = 1` nếu `yr_renovated > 0`, ngược lại 0, thay thế
-   `yr_renovated`. Bằng 1 ở 4,23% số dòng, tương quan với `price` là 0,126.
+2. `was_renovated = 1` nếu `0 < yr_renovated <= năm bán`, ngược lại 0, thay thế
+   `yr_renovated`. Bằng 1 ở 908 dòng (4,20%), tương quan với `price` là 0,126.
+   6 dòng có `yr_renovated` lớn hơn năm bán được tính là chưa cải tạo.
 3. Thêm `sqft_per_bedroom = sqft_living / bedrooms`. Khoảng 49,1-3.420,
    trung vị 576,7, trung bình 618,2, tương quan với `price` là 0,580.
    Khi `bedrooms` bằng 0 hoặc khuyết thì kết quả là NaN và được bù bằng

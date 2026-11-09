@@ -74,7 +74,7 @@ Hai cột gốc `yr_built` và `yr_renovated` không đưa trực tiếp vào m�
 - 3 căn rẻ nhất: 75.000, 78.000, 80.000 USD (nhà nhỏ 430-780 sqft, grade 3-5). Giữ lại.
 - `bedrooms` 1-33: có 1 dòng 33 phòng ngủ trên 1.620 sqft, giữ lại và ghi chú nghi ngờ nhập liệu. Trên 6 phòng ngủ: 62 dòng.
 - `bathrooms` 0,5-8, không có giá trị 0. `sqft_living` 290-13.540, trung vị 1.910. `sqft_lot` 520-1.651.359, trung vị 7.618.
-- `yr_built` 1900-2015, 12 dòng có `yr_built` lớn hơn năm bán. `yr_renovated` bằng 0 ở 20.699 dòng (95,8%), khác 0 ở 914 dòng (4,2%), 6 dòng lớn hơn năm bán, 0 dòng nhỏ hơn `yr_built`.
+- `yr_built` 1900-2015, 12 dòng có `yr_built` lớn hơn năm bán. `yr_renovated` bằng 0 ở 20.699 dòng (95,8%), khác 0 ở 914 dòng (4,2%), 6 dòng lớn hơn năm bán (đều là cải tạo 2015 trên nhà bán 2014, được tính là chưa cải tạo ở mục 9), 0 dòng nhỏ hơn `yr_built`.
 - `floors` chỉ nhận 1/1,5/2/2,5/3/3,5. `waterfront` bằng 1 ở 163 dòng (0,75%). `view` bằng 0 ở 19.489 dòng. `condition` bằng 3 ở 14.031 dòng. `grade` bằng 7 ở 8.981 dòng, bằng 8 ở 6.068 dòng, bằng 1 ở 1 dòng, bằng 13 ở 13 dòng. `sqft_basement` bằng 0 ở 13.126 dòng.
 - `lat` 47,156-47,778, `long` -122,519 đến -121,315.
 - Không xóa dòng nào trong toàn bộ Phase 2.
@@ -117,7 +117,7 @@ Hai cột gốc `yr_built` và `yr_renovated` không đưa trực tiếp vào m�
 ## 9. Feature engineering
 
 - `house_age = năm bán - yr_built`, kẹp tối thiểu 0. Khoảng -1 đến 115, trung vị 40, trung bình 43,3; 12 giá trị âm được kẹp về 0. Tương quan với `price` là -0,054. Thay thế `yr_built` vì hai cột gần như trùng thông tin trong cùng một năm bán.
-- `was_renovated = 1` nếu `yr_renovated > 0`, ngược lại 0. Bằng 1 ở 4,23% số dòng, tương quan với `price` là 0,126. Thay thế `yr_renovated` vì giá trị 0 trong cột gốc trộn cờ hiệu "chưa cải tạo" với năm.
+- `was_renovated = 1` nếu `0 < yr_renovated <= năm bán`, ngược lại 0. Bằng 1 ở 908 dòng (4,20%), tương quan với `price` là 0,126. Thay thế `yr_renovated` vì giá trị 0 trong cột gốc trộn cờ hiệu "chưa cải tạo" với năm. 6 dòng có `yr_renovated` (2015) lớn hơn năm bán (2014) được tính là chưa cải tạo, vì không thể cải tạo sau khi đã bán.
 - `sqft_per_bedroom = sqft_living / bedrooms`. Khoảng 49,1-3.420, trung vị 576,7, trung bình 618,2, 13 NaN (do `bedrooms` khuyết). Khi `bedrooms` bằng 0 hoặc khuyết thì kết quả là NaN và được bù median. Tương quan với `price` là 0,580.
 - Không tạo đặc trưng nào từ biến mục tiêu `price` (rò rỉ dữ liệu).
   Xem [adr/006-feature-engineering-va-zipcode.md](adr/006-feature-engineering-va-zipcode.md).
