@@ -1,6 +1,6 @@
 # ADR-005: Chia train/validation/test theo nhóm id
 
-- Trạng thái: Đã chấp nhận (Phase 2, 09/11/2026)
+- Trạng thái: Đã chấp nhận (Data Pipeline Implementation Milestone, 09/11/2026)
 - Ưu tiên: chống rò rỉ dữ liệu do cùng căn nhà xuất hiện nhiều lần
 
 ## Bối cảnh
@@ -11,10 +11,10 @@ tức 177 dòng thừa. 173/176 nhóm có giá khác nhau giữa các lần bán
 0 nhóm trùng ngày, khoảng cách ngày lớn nhất trong cùng id là 315 ngày.
 Đây phần lớn là cùng căn nhà bán nhiều lần, không phải lỗi trùng dữ liệu.
 
-Chia ngẫu nhiên theo dòng (cách làm Phase 1, xem ADR-003) để lọt 41 dòng
+Chia ngẫu nhiên theo dòng (cách làm ở Architecture Setup Milestone, xem ADR-003) để lọt 41 dòng
 test và 38 dòng validation trùng id với train. Mô hình đã thấy chính căn
 nhà đó ở train, chỉ cần nhớ giá cũ là đoán gần đúng, nên điểm đánh giá
-lạc quan giả. Đính chính số liệu Phase 1: "177 id trùng" là sai,
+lạc quan giả. Đính chính số liệu ở Architecture Setup Milestone: "177 id trùng" là sai,
 177 là số dòng thừa, số id lặp đúng là 176.
 
 ## Các lựa chọn đã xem xét
@@ -34,7 +34,7 @@ lạc quan giả. Đính chính số liệu Phase 1: "177 id trùng" là sai,
    test 3.241 dòng. Số id trùng nhau giữa các tập: 0.
 2. `id` chỉ dùng làm `groups` khi chia, không thành feature của mô hình.
 3. `split_train_val_test` nhận thêm tham số `groups`; khi `groups` là None
-   thì chia ngẫu nhiên như Phase 1 (giữ để tương thích test cũ).
+   thì chia ngẫu nhiên như ở Architecture Setup Milestone (giữ để tương thích test cũ).
 4. `prepare_data` trả thêm `id_train`, `id_val`, `id_test` chỉ để kiểm
    chứng việc chia theo nhóm, không phải đầu vào mô hình.
 

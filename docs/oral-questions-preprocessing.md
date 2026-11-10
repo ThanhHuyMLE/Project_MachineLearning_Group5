@@ -125,5 +125,5 @@ Vì outlier không đồng nghĩa lỗi. Ba căn đắt nhất (7,7 triệu, 7,0
 6,89 triệu USD) đều nhất quán với diện tích, grade và waterfront; ba căn
 rẻ nhất (75.000-80.000 USD) đều là nhà nhỏ grade 3-5. Xóa chúng là xóa
 một phần thị trường thật và làm mô hình không dự đoán được nhà cao cấp
-hay nhà rẻ. Phase 2 không xóa dòng nào; chỉ ghi chú dòng 33 phòng ngủ
+hay nhà rẻ. Data Pipeline Implementation Milestone không xóa dòng nào; chỉ ghi chú dòng 33 phòng ngủ
 là nghi ngờ nhập liệu và vẫn giữ lại.

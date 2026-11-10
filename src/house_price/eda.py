@@ -1,9 +1,9 @@
-"""Biểu đồ phân tích khám phá dữ liệu EDA (Sinh viên 1).
+"""Biểu đồ phân tích khám phá dữ liệu EDA (Stage 01: Data Understanding & Preprocessing).
 
 Mọi hàm chỉ vẽ từ dữ liệu thật được truyền vào, không sinh số giả.
 Nếu truyền ``save_path`` thì lưu file ảnh, nếu không thì trả về figure
 để notebook hiển thị. Biểu đồ EDA tách riêng khỏi ``visualization.py``
-(vốn vẽ biểu đồ đánh giá mô hình của Sinh viên 3).
+(vốn vẽ biểu đồ đánh giá mô hình của Stage 03: Model Training & Evaluation).
 """
 
 from __future__ import annotations

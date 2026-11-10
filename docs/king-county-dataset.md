@@ -63,7 +63,7 @@ Hai cột gốc `yr_built` và `yr_renovated` không đưa trực tiếp vào m�
 ## 6. Duplicate
 
 - Không có dòng trùng hoàn toàn (0 dòng giống hệt nhau ở mọi cột).
-- Đính chính số liệu Phase 1: con số đúng là **176 id lặp** (175 id xuất hiện 2 lần, 1 id xuất hiện 3 lần), liên quan 353 dòng, tức 177 dòng thừa. Phase 1 ghi "177 id trùng" là sai: 177 là số dòng thừa, không phải số id lặp.
+- Đính chính số liệu ở Architecture Setup Milestone: con số đúng là **176 id lặp** (175 id xuất hiện 2 lần, 1 id xuất hiện 3 lần), liên quan 353 dòng, tức 177 dòng thừa. Architecture Setup Milestone ghi "177 id trùng" là sai: 177 là số dòng thừa, không phải số id lặp.
 - 0 nhóm id trùng cùng ngày giao dịch; khoảng cách ngày lớn nhất trong cùng một id là 315 ngày. 173/176 nhóm có giá khác nhau giữa các lần bán.
 - 3 nhóm giống hệt nhau ở mọi cột mô hình trừ `id`/`date`, nghi là bản ghi trùng, nhưng vẫn giữ lại vì không chứng minh được là lỗi.
 - Kết luận: id lặp phần lớn là cùng căn nhà bán nhiều lần, không phải lỗi trùng dữ liệu. Vì vậy không xóa dòng nào, mà chia tập theo nhóm id (xem mục 10 và [adr/005-chia-theo-nhom-id.md](adr/005-chia-theo-nhom-id.md)).
@@ -77,7 +77,7 @@ Hai cột gốc `yr_built` và `yr_renovated` không đưa trực tiếp vào m�
 - `yr_built` 1900-2015, 12 dòng có `yr_built` lớn hơn năm bán. `yr_renovated` bằng 0 ở 20.699 dòng (95,8%), khác 0 ở 914 dòng (4,2%), 6 dòng lớn hơn năm bán (đều là cải tạo 2015 trên nhà bán 2014, được tính là chưa cải tạo ở mục 9), 0 dòng nhỏ hơn `yr_built`.
 - `floors` chỉ nhận 1/1,5/2/2,5/3/3,5. `waterfront` bằng 1 ở 163 dòng (0,75%). `view` bằng 0 ở 19.489 dòng. `condition` bằng 3 ở 14.031 dòng. `grade` bằng 7 ở 8.981 dòng, bằng 8 ở 6.068 dòng, bằng 1 ở 1 dòng, bằng 13 ở 13 dòng. `sqft_basement` bằng 0 ở 13.126 dòng.
 - `lat` 47,156-47,778, `long` -122,519 đến -121,315.
-- Không xóa dòng nào trong toàn bộ Phase 2.
+- Không xóa dòng nào trong toàn bộ Data Pipeline Implementation Milestone.
 
 ## 8. EDA
 
@@ -110,7 +110,7 @@ Hai cột gốc `yr_built` và `yr_renovated` không đưa trực tiếp vào m�
   vẫn tăng đơn điệu theo grade. Kết luận: các quyết định ở mục 9 không đổi nếu
   chỉ dùng train. Ngoại lệ cần ghi rõ: grade 1 chỉ có 1 dòng nên không có mặt
   trong train (dòng đó rơi vào validation/test).
-- Quy tắc cho SV2/SV3/SV4 từ đây trở đi: mọi phân tích phục vụ chọn mô hình,
+- Quy tắc cho Stage 02, Stage 03 và Stage 04 từ đây trở đi: mọi phân tích phục vụ chọn mô hình,
   chọn ngưỡng hay biến đổi dữ liệu phải tính trên train (hoặc train + validation),
   không tính lại trên toàn tập hay trên test.
 
@@ -126,7 +126,7 @@ Hai cột gốc `yr_built` và `yr_renovated` không đưa trực tiếp vào m�
 
 - Chia train/validation/test 70/15/15, `random_state=42`, theo nhóm `id` bằng `GroupShuffleSplit`: mọi giao dịch của cùng một căn nhà nằm trong cùng một partition.
 - Kích thước thực: train 15.129, validation 3.243, test 3.241 dòng. Số id trùng nhau giữa các tập: 0.
-- Chia ngẫu nhiên theo dòng (cách làm Phase 1) để lọt 41 dòng test và 38 dòng validation trùng id với train, làm điểm đánh giá lạc quan giả.
+- Chia ngẫu nhiên theo dòng (cách làm ở Architecture Setup Milestone) để lọt 41 dòng test và 38 dòng validation trùng id với train, làm điểm đánh giá lạc quan giả.
 - Hồi quy không có nhãn lớp nên không stratify.
 
 ## 11. Chuẩn hóa và encoding
@@ -178,8 +178,8 @@ z = (x - mean_train) / std_train
 - 3 nhóm id giống hệt ở mọi cột mô hình trừ `id`/`date` vẫn giữ lại (xem mục 6); nếu là bản ghi trùng thật thì chúng gây nhiễu nhỏ.
 - Dòng 33 phòng ngủ trên 1.620 sqft vẫn giữ lại dù nghi ngờ nhập liệu.
 - Phân bố `price` lệch phải mạnh; chưa thử biến đổi log cho mục tiêu,
-  đó là việc của giai đoạn mô hình nếu cần.
+  đó là việc của các Stage mô hình nếu cần.
 - Các số EDA mô tả ở mục 8 tính trên toàn bộ dataset; việc kiểm chứng lại
   trên train (xem mục 8) làm sau khi chia tập, chỉ để xác nhận quyết định
   không đổi. Đúng trình tự lý tưởng là tính EDA phục vụ quyết định trên train
-  ngay từ đầu, nhóm cần tuân thủ trình tự này ở các giai đoạn sau.
+  ngay từ đầu, nhóm cần tuân thủ trình tự này ở các Stage sau.

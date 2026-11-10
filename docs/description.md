@@ -33,7 +33,7 @@ Dữ liệu: King County House Sales, 21.613 giao dịch từ tháng 5/2014
   xem [adr/004-mlp-trien-khai.md](adr/004-mlp-trien-khai.md)).
 - Không xây engine neural network hay cây quyết định từ đầu nếu giảng viên
   không yêu cầu rõ ràng.
-- Không thêm web app, backend service, database, Docker hay CI/CD trong Phase 1.
+- Không thêm web app, backend service, database, Docker hay CI/CD trong Architecture Setup Milestone.
 
 ## Căn cứ kiến thức
 
