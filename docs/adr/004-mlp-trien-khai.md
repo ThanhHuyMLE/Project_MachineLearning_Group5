@@ -21,12 +21,17 @@ pandas 3.0.6, numpy 2.5.4 nhưng **không có TensorFlow** và chưa thử cài 
 
 ## Quyết định
 
-- Lớp `MLPRegressorModel` dùng sklearn MLPRegressor làm backend mặc định,
-  giữ nguyên interface `__init__/build_model/fit/predict` để đổi backend
-  sau này không đổi code gọi.
-- Sinh viên 2 thử cài TensorFlow trong môi trường riêng; nếu cài được và
-  nhóm đồng ý, thêm biến thể Keras (cùng interface) và cập nhật ADR này.
-- Không cài TensorFlow trong Phase 1.
+- MLP được tự triển khai bằng NumPy trong
+  `src/house_price/models/mlp.py`.
+- Các phép Forward Propagation, Backpropagation, MSE và Adam nằm trong
+  class MLP; không dùng `sklearn.MLPRegressor`, TensorFlow hoặc Keras
+  để huấn luyện MLP.
+- scikit-learn vẫn được dùng trong pipeline tiền xử lý và đánh giá
+  theo các module tương ứng.
+- MLP dùng hidden layers `(32, 16)`, ReLU, output Linear, Adam,
+  learning rate `0.001`, tối đa 100 epoch và batch size 32.
+- Sau khi `fit()` hoàn tất, cấu hình, loss history, weights và biases
+  được lưu vào `outputs/mlp_parameters.json`.
 
 ## Đánh đổi chấp nhận
 
