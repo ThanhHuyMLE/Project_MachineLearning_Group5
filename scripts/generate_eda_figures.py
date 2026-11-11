@@ -1,4 +1,4 @@
-"""Sinh toàn bộ biểu đồ EDA vào outputs/eda/ từ dữ liệu thật.
+"""Sinh toàn bộ biểu đồ EDA và file tóm tắt EDA vào outputs/eda/ từ dữ liệu thật.
 
 Chạy từ thư mục gốc repo:
     .venv/bin/python scripts/generate_eda_figures.py
@@ -28,7 +28,7 @@ FIGURES = [
 
 
 def main() -> int:
-    """Nạp CSV gốc và lưu 7 biểu đồ EDA vào outputs/eda/."""
+    """Nạp CSV gốc, lưu 7 biểu đồ EDA và file eda_summary.json vào outputs/eda/."""
     # Console Windows mặc định dùng cp1252, không in được tiếng Việt có dấu
     # nên print() sẽ crash (UnicodeEncodeError). Chuyển sang UTF-8;
     # trên Linux/macOS không đổi gì. Lỗi được bỏ qua nếu stdout/stderr
@@ -43,6 +43,9 @@ def main() -> int:
     for filename, plot_fn in FIGURES:
         plot_fn(frame, save_path=OUTPUT_DIR / filename)
         print(f"Đã lưu {OUTPUT_DIR / filename}")
+    summary_path = OUTPUT_DIR / "eda_summary.json"
+    eda.export_eda_summary(frame, summary_path)
+    print(f"Đã lưu {summary_path}")
     return 0
 
 
