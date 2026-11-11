@@ -31,11 +31,10 @@ Dữ liệu: King County House Sales, 21.613 giao dịch từ tháng 5/2014
 - Chỉ làm bài toán Hồi quy giá nhà King County, theo đề Bài tập thực hành 4.
 - Không xây engine neural network hay cây quyết định từ đầu nếu giảng viên
   không yêu cầu rõ ràng.
-- Không thêm web app, backend service, database, Docker hay CI/CD trong Phase 1.
+- Không thêm web app, backend service, database, Docker hay CI/CD trong Architecture Setup Milestone.
 - MLP được cài đặt thủ công bằng NumPy theo yêu cầu dự án.
-  Các mô hình đối chiếu có thể dùng scikit-learn.
-- NumPy chỉ được dùng cho phép tính mảng; không dùng thư viện
-  triển khai MLP, Backpropagation hoặc optimize
+- Các mô hình đối chiếu có thể dùng scikit-learn.
+- NumPy chỉ được dùng cho phép tính mảng; không dùng thư viện để triển khai MLP, Backpropagation hoặc optimizer.
 
 ## Căn cứ kiến thức
 

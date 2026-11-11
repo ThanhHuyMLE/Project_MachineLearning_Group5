@@ -1,12 +1,12 @@
 # ADR-006: Feature engineering và xử lý zipcode
 
-- Trạng thái: Đã chấp nhận (Phase 2, 09/11/2026)
+- Trạng thái: Đã chấp nhận (Data Pipeline Implementation Milestone, 09/11/2026)
 - Ưu tiên: đặc trưng đầu vào đúng ý nghĩa, zipcode không còn xử lý sai
   dạng số liên tục
 
 ## Bối cảnh
 
-Hợp đồng dữ liệu Phase 1 dùng 18 đặc trưng gốc, trong đó `yr_built` và
+Hợp đồng dữ liệu ở Architecture Setup Milestone dùng 18 đặc trưng gốc, trong đó `yr_built` và
 `yr_renovated` mang thông tin dưới dạng thô chưa phù hợp, và `zipcode`
 đang xử lý như số liên tục. Cụ thể: 12 dòng có `yr_built` lớn hơn năm
 bán (tuổi âm, lỗi ghi dữ liệu); `yr_renovated` bằng 0 ở 20.699 dòng
