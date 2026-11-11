@@ -4,7 +4,7 @@ Bài tập thực hành 4: dự đoán giá nhà (Regression - Hồi quy) bằng
 Multilayer Perceptron (MLP) và đối chiếu với 3 mô hình truyền thống:
 Linear Regression, Decision Tree Regression, Random Forest Regression.
 
-> Trạng thái: **Phase 1 - Kiến trúc, tài liệu và khung code (scaffolding)**.
+> Trạng thái: **Architecture Setup Milestone - Kiến trúc, tài liệu và khung code (scaffolding)**.
 > Chưa huấn luyện mô hình, chưa có kết quả thực nghiệm.
 > Xem [docs/progress_results.md](docs/progress_results.md).
 
@@ -76,18 +76,18 @@ Quy tắc quan trọng nhất: **chia dữ liệu trước, chỉ fit imputer/sc
 trên tập train** (xem [docs/adr/003-chia-train-validation-test.md](docs/adr/003-chia-train-validation-test.md)).
 Không dùng tập test để chọn mô hình hay chỉnh siêu tham số.
 
-## Phân công 4 sinh viên
+## Phân công theo Stage
 
-| Sinh viên | Phụ trách chính | File chính |
+| Stage | Phụ trách chính | File chính |
 |---|---|---|
-| 1 | Dữ liệu và Tiền xử lý (Preprocessing) | `src/house_price/preprocessing.py`, `docs/king-county-dataset.md` |
-| 2 | Kiến trúc MLP và lý thuyết | `src/house_price/models/mlp.py`, `docs/algorithms/mlp.md` |
-| 3 | Huấn luyện và Đánh giá (Training & Evaluation) | `src/house_price/train_evaluate.py`, `src/house_price/evaluation.py`, `src/house_price/visualization.py` |
-| 4 | Mô hình đối chiếu | `src/house_price/models/linear_regression.py`, `decision_tree.py`, `random_forest.py`, `src/house_price/model_comparison.py` |
+| Stage 01: Data Understanding & Preprocessing | Dữ liệu và Tiền xử lý | `src/house_price/preprocessing.py`, `docs/king-county-dataset.md` |
+| Stage 02: MLP Architecture & Implementation | Kiến trúc MLP và lý thuyết | `src/house_price/models/mlp.py`, `docs/algorithms/mlp.md` |
+| Stage 03: Model Training & Evaluation | Huấn luyện và Đánh giá | `src/house_price/train_evaluate.py`, `src/house_price/evaluation.py`, `src/house_price/visualization.py` |
+| Stage 04: Model Benchmarking & Analysis | Mô hình đối chiếu | `src/house_price/models/linear_regression.py`, `decision_tree.py`, `random_forest.py`, `src/house_price/model_comparison.py` |
 
-Thứ tự làm để ít xung đột nhất: Sinh viên 1 trước (hợp đồng dữ liệu),
-sau đó Sinh viên 2 và 4 làm song song (mô hình độc lập),
-Sinh viên 3 cuối cùng (ghép pipeline và đánh giá).
+Thứ tự làm để ít xung đột nhất: Stage 01 trước (hợp đồng dữ liệu),
+sau đó Stage 02 và Stage 04 làm song song (mô hình độc lập),
+Stage 03 cuối cùng (ghép pipeline và đánh giá).
 Chi tiết: [docs/detail_plan.md](docs/detail_plan.md).
 
 ## Quy tắc làm việc

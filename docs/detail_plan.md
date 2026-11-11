@@ -38,15 +38,15 @@ y_pred = model.predict(X_test)
   optimizer Adam, loss MSE, epochs 100, batch size 32 (theo đề bài).
 - Không chỉnh siêu tham số dựa trên điểm test. Chỉ dùng validation để chọn.
 
-## Thứ tự làm của 4 sinh viên (giảm xung đột)
+## Thứ tự thực hiện các Stage (giảm xung đột)
 
-1. **Sinh viên 1 trước:** hoàn thành `preprocessing.py` và hợp đồng dữ liệu.
-   Các bạn khác chỉ đọc hợp đồng, không sửa file của nhau khi chưa thống nhất.
-2. **Sinh viên 2 và 4 song song:** Sinh viên 2 làm `models/mlp.py`,
-   Sinh viên 4 làm 3 mô hình đối chiếu. Hai nhóm file độc lập nhau.
-3. **Sinh viên 3 cuối cùng:** ghép pipeline trong `train_evaluate.py`,
+1. **Stage 01: Data Understanding & Preprocessing trước:** hoàn thành `preprocessing.py` và hợp đồng dữ liệu.
+   Các Stage sau chỉ đọc hợp đồng, không sửa file của Stage 01 khi chưa thống nhất.
+2. **Stage 02: MLP Architecture & Implementation và Stage 04: Model Benchmarking & Analysis song song:** Stage 02 làm `models/mlp.py`,
+   Stage 04 làm 3 mô hình đối chiếu. Hai nhóm file độc lập nhau.
+3. **Stage 03: Model Training & Evaluation cuối cùng:** ghép pipeline trong `train_evaluate.py`,
    đánh giá, vẽ biểu đồ, phân tích overfitting.
-4. Mỗi người tự cập nhật tài liệu thuật toán của mình và ghi kết quả thật
+4. Mỗi Stage tự cập nhật tài liệu thuật toán của mình và ghi kết quả thật
    vào [progress_results.md](progress_results.md) sau mỗi công đoạn.
 
 ## Cập nhật sau mỗi công đoạn

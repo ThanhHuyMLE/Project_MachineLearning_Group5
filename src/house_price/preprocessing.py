@@ -1,4 +1,4 @@
-"""Nạp dữ liệu, kỹ thuật đặc trưng, chia tập và chuẩn hóa (Sinh viên 1).
+"""Nạp dữ liệu, kỹ thuật đặc trưng, chia tập và chuẩn hóa (Stage 01: Data Understanding & Preprocessing).
 
 Quy tắc chống rò rỉ dữ liệu (Data Leakage) áp dụng trong toàn bộ module:
 chia train/validation/test TRƯỚC, chỉ fit imputer, scaler và one-hot
@@ -173,7 +173,7 @@ def split_train_val_test(
 
     Khi truyền ``groups`` (mã ``id`` căn nhà), dùng GroupShuffleSplit để
     mọi quan sát của cùng một căn nhà nằm trong cùng một partition. Khi
-    ``groups`` là None thì chia ngẫu nhiên theo dòng như Phase 1.
+    ``groups`` là None thì chia ngẫu nhiên theo dòng như cách chia ban đầu (Architecture Setup Milestone).
     """
     if groups is None:
         X_train, X_temp, y_train, y_temp = train_test_split(
