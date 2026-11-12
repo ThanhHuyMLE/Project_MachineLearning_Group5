@@ -18,6 +18,11 @@ from house_price.models import (
     RandomForestRegressorModel,
 )
 from house_price.preprocessing import prepare_data
+from house_price.visualization import (
+    plot_actual_vs_predicted,
+    plot_metric_comparison,
+    plot_training_history,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA = (
@@ -49,6 +54,7 @@ def train_and_evaluate(
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
 ) -> tuple[pd.DataFrame, dict[str, object]]:
     """Fit trên train và chỉ dùng test để đánh giá cuối."""
+    output_dir = Path(output_dir)
     results: dict[str, dict[str, float | None]] = {}
     predictions: dict[str, object] = {}
 
@@ -71,7 +77,36 @@ def train_and_evaluate(
         results[name] = regression_metrics(data["y_test"], y_pred)
         predictions[name] = y_pred
 
-    return compare_models(results), predictions
+        # Vẽ biểu đồ Actual vs Predicted cho từng mô hình
+        slug = name.lower().replace(" ", "_")
+        plot_actual_vs_predicted(
+            data["y_test"],
+            y_pred,
+            title=f"Actual vs Predicted - {name}",
+            save_path=output_dir / f"actual_vs_predicted_{slug}.png",
+        )
+
+        # Vẽ đường cong loss nếu mô hình có lưu lịch sử huấn luyện (MLP)
+        history = getattr(model, "history_", None) or getattr(model, "history", None)
+        if isinstance(history, dict) and "loss" in history:
+            plot_training_history(
+                history,
+                save_path=output_dir / f"training_history_{slug}.png",
+            )
+
+    table = compare_models(results)
+
+    # Vẽ biểu đồ cột so sánh các chỉ số giữa các mô hình
+    if not table.empty:
+        for metric in ("rmse", "mae", "r2"):
+            if metric in table.columns:
+                plot_metric_comparison(
+                    table,
+                    metric=metric,
+                    save_path=output_dir / f"comparison_{metric}.png",
+                )
+
+    return table, predictions
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -118,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     print(table.to_string(index=False))
-    print(f"\nĐã lưu kết quả vào {output_dir}")
+    print(f"\nĐã lưu kết quả và biểu đồ vào {output_dir}")
     return 0
 
 
