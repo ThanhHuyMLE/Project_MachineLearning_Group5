@@ -8,6 +8,8 @@ Xem docs/algorithms/random_forest.md.
 
 from __future__ import annotations
 
+from sklearn.ensemble import RandomForestRegressor
+
 from house_price.models.base import BaseRegressorModel
 
 
@@ -28,7 +30,14 @@ class RandomForestRegressorModel(BaseRegressorModel):
         ``random_state=self.random_state``; gán vào ``self.model``,
         đặt ``self._is_built = True``, ``self._is_fitted = False``.
         """
-        raise NotImplementedError("TODO (Sinh viên 4): cài đặt build_model() cho Random Forest.")
+        self.model = RandomForestRegressor(
+            n_estimators=self.n_estimators,
+            random_state=self.random_state,
+        )
+        self._is_built = True
+        self._is_fitted = False
+        self.history_ = None
+        return self
 
     def fit(self, X_train, y_train):
         """Huấn luyện n_estimators cây trên tập train.
@@ -36,11 +45,15 @@ class RandomForestRegressorModel(BaseRegressorModel):
         TODO: gọi ``self._require_built()``, fit ``self.model``,
         đặt ``self._is_fitted = True`` và trả về ``self``.
         """
-        raise NotImplementedError("TODO (Sinh viên 4): cài đặt fit() cho Random Forest.")
+        self._require_built()
+        self.model.fit(X_train, y_train)
+        self._is_fitted = True
+        return self
 
     def predict(self, X):
         """Trả trung bình dự đoán của các cây.
 
         TODO: gọi ``self._require_fitted()`` rồi trả ``self.model.predict(X)``.
         """
-        raise NotImplementedError("TODO (Sinh viên 4): cài đặt predict() cho Random Forest.")
+        self._require_fitted()
+        return self.model.predict(X)

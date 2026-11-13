@@ -45,6 +45,23 @@ def test_linear_regression_fits_and_predicts_on_synthetic_data():
     assert np.allclose(predictions, y[:5], atol=1e-6)
 
 
+def test_decision_tree_builds_fits_and_predicts():
+    X = np.array([[0.0], [1.0], [2.0], [3.0]])
+    y = np.array([0.0, 0.0, 1.0, 1.0])
+    model = DecisionTreeRegressorModel(max_depth=1, random_state=7)
+
+    assert model.build_model() is model
+    assert model.model.get_params()["max_depth"] == 1
+    assert model.model.get_params()["random_state"] == 7
+    assert model._is_built
+    assert not model._is_fitted
+    assert model.history_ is None
+
+    assert model.fit(X, y) is model
+    assert model._is_fitted
+    assert np.array_equal(model.predict(X), y)
+
+
 def test_handwritten_mlp_trains_predicts_and_saves_parameters(tmp_path):
     rng = np.random.default_rng(42)
     X = rng.normal(size=(80, 5))
@@ -80,12 +97,20 @@ def test_handwritten_mlp_requires_input_size_to_build():
         model.build_model()
 
 
-def test_other_unimplemented_models_raise_not_implemented():
-    for model_class in (
-        DecisionTreeRegressorModel,
-        RandomForestRegressorModel,
-    ):
-        model = model_class()
+def test_random_forest_builds_fits_and_predicts():
+    X = np.array([[0.0], [1.0], [2.0], [3.0]])
+    y = np.array([0.0, 0.0, 1.0, 1.0])
+    model = RandomForestRegressorModel(n_estimators=5, random_state=7)
 
-        with pytest.raises(NotImplementedError):
-            model.build_model()
+    assert model.build_model() is model
+    assert model.model.get_params()["n_estimators"] == 5
+    assert model.model.get_params()["random_state"] == 7
+    assert model._is_built
+    assert not model._is_fitted
+    assert model.history_ is None
+
+    assert model.fit(X, y) is model
+    assert model._is_fitted
+    predictions = model.predict(X)
+    assert predictions.shape == (4,)
+    assert np.isfinite(predictions).all()

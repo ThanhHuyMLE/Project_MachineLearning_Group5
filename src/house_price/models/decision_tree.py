@@ -8,6 +8,8 @@ Xem docs/algorithms/decision_tree.md.
 
 from __future__ import annotations
 
+from sklearn.tree import DecisionTreeRegressor
+
 from house_price.models.base import BaseRegressorModel
 
 
@@ -28,7 +30,14 @@ class DecisionTreeRegressorModel(BaseRegressorModel):
         gán vào ``self.model``, đặt ``self._is_built = True``,
         ``self._is_fitted = False``.
         """
-        raise NotImplementedError("TODO (Sinh viên 4): cài đặt build_model() cho Decision Tree.")
+        self.model = DecisionTreeRegressor(
+            max_depth=self.max_depth,
+            random_state=self.random_state,
+        )
+        self._is_built = True
+        self._is_fitted = False
+        self.history_ = None
+        return self
 
     def fit(self, X_train, y_train):
         """Xây cây bằng cách chia đệ quy trên tập train.
@@ -36,11 +45,15 @@ class DecisionTreeRegressorModel(BaseRegressorModel):
         TODO: gọi ``self._require_built()``, fit ``self.model``,
         đặt ``self._is_fitted = True`` và trả về ``self``.
         """
-        raise NotImplementedError("TODO (Sinh viên 4): cài đặt fit() cho Decision Tree.")
+        self._require_built()
+        self.model.fit(X_train, y_train)
+        self._is_fitted = True
+        return self
 
     def predict(self, X):
         """Đi từ gốc xuống lá và trả giá trị của lá.
 
         TODO: gọi ``self._require_fitted()`` rồi trả ``self.model.predict(X)``.
         """
-        raise NotImplementedError("TODO (Sinh viên 4): cài đặt predict() cho Decision Tree.")
+        self._require_fitted()
+        return self.model.predict(X)
