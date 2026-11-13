@@ -8,7 +8,7 @@ import warnings
 from pathlib import Path
 
 import pandas as pd
-
+from sklearn.model_selection import train_test_split
 from house_price.evaluation import regression_metrics
 from house_price.model_comparison import compare_models
 from house_price.models import (
@@ -64,10 +64,22 @@ def train_and_evaluate(
         try:
             if isinstance(model, MLPRegressorModel):
                 model.build_model(input_size=data["X_train"].shape[1])
+
+                if "X_val" in data and "y_val" in data:
+                    X_tr, y_tr = data["X_train"], data["y_train"]
+                    X_val, y_val = data["X_val"], data["y_val"]
+                else:
+                    X_tr, X_val, y_tr, y_val = train_test_split(
+                        data["X_train"],
+                        data["y_train"],
+                        test_size=0.15,
+                        random_state=42,
+                    )
+
+                model.fit(X_tr, y_tr, X_val=X_val, y_val=y_val)
             else:
                 model.build_model()
-
-            model.fit(data["X_train"], data["y_train"])
+                model.fit(data["X_train"], data["y_train"])
 
         except NotImplementedError as exc:
             warnings.warn(f"Bỏ qua {name}: {exc}", stacklevel=2)
@@ -98,14 +110,14 @@ def train_and_evaluate(
 
     # Vẽ biểu đồ cột so sánh các chỉ số giữa các mô hình
     if not table.empty:
+        col_map = {col.lower(): col for col in table.columns}
         for metric in ("rmse", "mae", "r2"):
-            if metric in table.columns:
+            if metric in col_map:
                 plot_metric_comparison(
                     table,
-                    metric=metric,
+                    metric=col_map[metric],
                     save_path=output_dir / f"comparison_{metric}.png",
                 )
-
     return table, predictions
 
 

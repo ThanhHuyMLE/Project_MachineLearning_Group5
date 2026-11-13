@@ -100,7 +100,7 @@ class MLPRegressorModel(BaseRegressorModel):
         self._adam_step = 0
 
         self._input_size = input_size
-        self.history_ = {"loss": []}
+        self.history_ = {"loss": [], "val_loss": []}
         self._is_built = True
         self._is_fitted = False
         return self
@@ -224,8 +224,8 @@ class MLPRegressorModel(BaseRegressorModel):
                 / (np.sqrt(v_bias_hat) + self.epsilon)
             )
 
-    def fit(self, X_train, y_train):
-        """Huấn luyện MLP theo mini-batch và tự lưu tham số thành JSON."""
+    def fit(self, X_train, y_train, X_val=None, y_val=None):
+        """Huấn luyện MLP theo mini-batch, theo dõi val_loss và tự lưu tham số thành JSON."""
         self._require_built()
 
         X = np.asarray(X_train, dtype=float)
@@ -245,8 +245,22 @@ class MLPRegressorModel(BaseRegressorModel):
         if not np.isfinite(X).all() or not np.isfinite(y).all():
             raise ValueError("Dữ liệu train không được chứa NaN hoặc vô cực.")
 
+        if (X_val is None) != (y_val is None):
+            raise ValueError("Phải truyền đồng thời cả X_val và y_val.")
+
+        has_val = X_val is not None and y_val is not None
+        if has_val:
+            X_val_arr = np.asarray(X_val, dtype=float)
+            y_val_arr = np.asarray(y_val, dtype=float).reshape(-1, 1)
+            if X_val_arr.ndim != 2 or X_val_arr.shape[1] != self._input_size:
+                raise ValueError("Kích thước X_val không khớp với input_size của mạng.")
+            if X_val_arr.shape[0] == 0 or X_val_arr.shape[0] != y_val_arr.shape[0]:
+                raise ValueError("X_val và y_val không được rỗng và phải cùng số mẫu.")
+            if not np.isfinite(X_val_arr).all() or not np.isfinite(y_val_arr).all():
+                raise ValueError("Dữ liệu validation không được chứa NaN hoặc vô cực.")
+
         rng = np.random.default_rng(self.random_state)
-        self.history_ = {"loss": []}
+        self.history_ = {"loss": [], "val_loss": []} if has_val else {"loss": []}
 
         for _epoch in range(self.epochs):
             # Xáo trộn thứ tự mẫu mỗi epoch.
@@ -276,6 +290,12 @@ class MLPRegressorModel(BaseRegressorModel):
             epoch_loss = float(np.mean(np.square(y - train_predictions)))
             self.history_["loss"].append(epoch_loss)
 
+            # Tính MSE trên tập validation (chỉ forward, không cập nhật trọng số).
+            if has_val:
+                val_predictions, _ = self._forward(X_val_arr)
+                val_epoch_loss = float(np.mean(np.square(y_val_arr - val_predictions)))
+                self.history_["val_loss"].append(val_epoch_loss)
+
         self._is_fitted = True
 
         # Lưu trực tiếp tham số đã học sau khi fit hoàn tất.
@@ -302,7 +322,7 @@ class MLPRegressorModel(BaseRegressorModel):
             json.dump(payload, file, ensure_ascii=False, indent=2)
 
         return self
-
+    
     def predict(self, X):
         """Dự đoán một giá trị cho mỗi mẫu đầu vào."""
         self._require_fitted()
