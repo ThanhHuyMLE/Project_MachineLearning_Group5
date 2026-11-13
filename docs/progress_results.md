@@ -68,3 +68,19 @@ Bảng dưới đây chỉ là khung chờ, Sinh viên 3 điền số thật sau
   như kết quả thực nghiệm.
 - `zipcode` đã chốt ở Data Pipeline Implementation Milestone: mã hóa one-hot 70 mã, không còn xử lý
   như số liên tục; xem `adr/006-feature-engineering-va-zipcode.md`.
+
+## Evaluation & Visualization Milestone - Stage 03: Model Training & Evaluation (ngày 13/11/2026)
+
+- Hoàn thiện và kiểm chứng quy trình đánh giá mô hình hồi quy trên nhánh `main`:
+  - `src/house_price/evaluation.py`: tính toán đầy đủ các chỉ số `MSE`, `RMSE`, `MAE`, `R2` và xử lý an toàn `MAPE` (trả về `None` nếu `y_true` có giá trị `0`).
+  - `src/house_price/visualization.py`: xây dựng các hàm vẽ biểu đồ phân tán `Actual vs Predicted`, đường cong `Training vs Validation Loss`, và biểu đồ cột so sánh chỉ số giữa các mô hình (`plot_metric_comparison`).
+  - `src/house_price/train_evaluate.py`: tích hợp tự động xuất toàn bộ biểu đồ đánh giá (`.png`) và bảng kết quả (`metrics.csv`, `predictions.csv`, `mlp_parameters.json`) vào thư mục `outputs/`.
+- Cách kiểm tra: chạy lệnh `python -m house_price.train_evaluate`, kiểm tra kiểm thử tự động `pytest` và định dạng mã nguồn `ruff check .`.
+- Kết quả đánh giá **thật** trên tập test (các mô hình đã cài đặt sẵn):
+
+| Mô hình | MSE | RMSE (USD) | MAE (USD) | R2 |
+| :--- | :--- | :--- | :--- | :--- |
+| **MLP Regression** | `2.367922e+10` | `153,880.55` | `90,391.93` | `0.835368` |
+| **Linear Regression** | `2.654661e+10` | `162,931.31` | `97,840.49` | `0.815432` |
+
+- Ghi chú: `Decision Tree Regression` và `Random Forest Regression` được bỏ qua tự động qua cơ chế `NotImplementedError` do phần cài đặt mô hình thuộc Giai đoạn 04 chưa tích hợp. Trong hai mô hình đã đánh giá, **MLP Regression** đạt độ chính xác cao hơn **Linear Regression** ($R^2 = 0.8354$ so với $0.8154$, giảm MAE khoảng $7,448.55$ USD).
