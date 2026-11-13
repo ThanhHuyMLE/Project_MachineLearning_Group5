@@ -46,12 +46,12 @@ Xem [pseudocode.md](../pseudocode.md) mục Random Forest Regression.
 File: `src/house_price/models/random_forest.py`,
 class `RandomForestRegressorModel` (TODO: Sinh viên 4 điền).
 
-| Phương thức | Công việc |
-|---|---|
-| `__init__(n_estimators=100, ...)` | Lưu cấu hình, chưa có rừng |
-| `build_model()` | Tạo `sklearn RandomForestRegressor`, reset trạng thái |
-| `fit(X_train, y_train)` | Huấn luyện `n_estimators` cây |
-| `predict(X_test)` | Trung bình dự đoán các cây, báo lỗi nếu chưa fit |
+| Phương thức                       | Công việc                                             |
+| --------------------------------- | ----------------------------------------------------- |
+| `__init__(n_estimators=100, ...)` | Lưu cấu hình, chưa có rừng                            |
+| `build_model()`                   | Tạo `sklearn RandomForestRegressor`, reset trạng thái |
+| `fit(X_train, y_train)`           | Huấn luyện `n_estimators` cây                         |
+| `predict(X_test)`                 | Trung bình dự đoán các cây, báo lỗi nếu chưa fit      |
 
 ## 7. Dữ liệu sử dụng
 
@@ -69,9 +69,14 @@ có thể vẽ để xem đặc trưng nào đóng góp nhiều nhất.
 
 ## 10. Kết quả thực nghiệm
 
-**CHƯA THỰC HIỆN.** Sinh viên 4 điền số thật sau khi chạy, kèm theo
-`n_estimators` thực tế dùng và thời gian huấn luyện (rừng 100 cây
-chậm hơn cây đơn lẻ đáng kể).
+| Chỉ số | Kết quả thực nghiệm trên tập Test |
+| ------ | --------------------------------- |
+| MSE    | 1.713137e+10                      |
+| RMSE   | 130,886.86 USD                    |
+| MAE    | 72,453.31 USD                     |
+| R2     | 0.8809                            |
+
+_(Ghi chú: Mô hình chạy với cấu hình `n_estimators=100` mặc định, cho kết quả tốt nhất trong cả 4 thuật toán)._
 
 ## 11. Hạn chế và thảo luận
 

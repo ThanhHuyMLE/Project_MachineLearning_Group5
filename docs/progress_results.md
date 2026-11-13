@@ -40,8 +40,8 @@ công đoạn. Không ghi kết quả chưa chạy như kết quả đã kiểm 
 Linear Regression chạy trên pipeline mới chỉ để kiểm tra pipeline chạy
 tròn đầu đến cuối, KHÔNG phải kết quả cuối cùng của bài tập:
 
-| Mô hình | MSE | RMSE | MAE | R2 |
-|---|---:|---:|---:|---:|
+| Mô hình                                 |         MSE |    RMSE |    MAE |     R2 |
+| --------------------------------------- | ----------: | ------: | -----: | -----: |
 | Linear Regression (kiểm chứng pipeline) | 2,656187e10 | 162.978 | 97.867 | 0,8153 |
 
 Số R2 0,697 của Architecture Setup Milestone đo trên pipeline cũ (18 đặc trưng, chia ngẫu
@@ -49,15 +49,19 @@ nhiên, `zipcode` dạng số) và đã lỗi thời, không so sánh với số
 
 ## Kết quả thực nghiệm
 
-**CHƯA CÓ KẾT QUẢ.** Chưa huấn luyện mô hình nào trong Architecture Setup Milestone.
-Bảng dưới đây chỉ là khung chờ, Sinh viên 3 điền số thật sau khi chạy.
+Dưới đây là kết quả benchmark của 4 mô hình trên cùng một tập test, cùng một bộ tiền xử lý dữ liệu:
 
-| Mô hình | MSE | RMSE | MAE | R2 |
-|---|---:|---:|---:|---:|
-| MLP Regression | CHƯA CHẠY | - | - | - |
-| Linear Regression | CHƯA CHẠY | - | - | - |
-| Decision Tree Regression | CHƯA CHẠY | - | - | - |
-| Random Forest Regression | CHƯA CHẠY | - | - | - |
+| Mô hình                      |          MSE | RMSE (USD) |  MAE (USD) |     R2 |
+| ---------------------------- | -----------: | ---------: | ---------: | -----: |
+| **Random Forest Regression** | 1.713137e+10 | 130,886.86 |  72,453.31 | 0.8809 |
+| **MLP Regression**           | 2.367922e+10 | 153,880.55 |  90,391.93 | 0.8354 |
+| **Linear Regression**        | 2.654661e+10 | 162,931.31 |  97,840.48 | 0.8154 |
+| **Decision Tree Regression** | 4.427875e+10 | 210,425.17 | 106,562.20 | 0.6921 |
+
+**Phân tích và Nhận xét:**
+Random Forest có hiệu năng tốt nhất với R² ≈ 0.8809, MSE ≈ 1.713 × 10¹⁰ và RMSE ≈ 130,887 USD. MLP xếp thứ hai, kế đến là Linear Regression. Decision Tree có kết quả thấp nhất trong bốn mô hình do bị overfitting.
+
+Random Forest phù hợp nhất với dữ liệu King County vì quan hệ giữa giá nhà với diện tích, chất lượng và vị trí (zipcode) có tính phi tuyến tính cao, trong khi giá trải rộng từ 75.000 đến 7,7 triệu USD và phân bố lệch phải mạnh. Việc kết hợp nhiều cây (Ensemble Bagging) giúp mô hình nắm bắt các quan hệ và tương tác phức tạp, đồng thời giảm biến động (variance) triệt để so với một Decision Tree đơn lẻ. Linear Regression khó biểu diễn các quan hệ phi tuyến này, còn MLP tuy linh hoạt nhưng cần tối ưu siêu tham số nhiều hơn mới có thể vượt qua Random Forest trên dữ liệu dạng bảng (tabular data) này.
 
 ## Giới hạn đã biết
 

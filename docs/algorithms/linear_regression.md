@@ -44,12 +44,12 @@ Xem [pseudocode.md](../pseudocode.md) mục Linear Regression.
 File: `src/house_price/models/linear_regression.py`,
 class `LinearRegressorModel` (đã cài đặt đầy đủ làm mẫu cho 3 class còn lại).
 
-| Phương thức | Công việc |
-|---|---|
-| `__init__()` | Lưu cấu hình, chưa có hệ số |
-| `build_model()` | Tạo `sklearn LinearRegression`, reset trạng thái |
-| `fit(X_train, y_train)` | Giải OLS, lưu `coef_` và `intercept_` |
-| `predict(X_test)` | Trả `X beta + b`, báo lỗi nếu chưa fit |
+| Phương thức             | Công việc                                        |
+| ----------------------- | ------------------------------------------------ |
+| `__init__()`            | Lưu cấu hình, chưa có hệ số                      |
+| `build_model()`         | Tạo `sklearn LinearRegression`, reset trạng thái |
+| `fit(X_train, y_train)` | Giải OLS, lưu `coef_` và `intercept_`            |
+| `predict(X_test)`       | Trả `X beta + b`, báo lỗi nếu chưa fit           |
 
 ## 7. Dữ liệu sử dụng
 
@@ -67,7 +67,12 @@ nào ảnh hưởng mạnh nhất (chỉ có ý nghĩa khi đặc trưng đã ch
 
 ## 10. Kết quả thực nghiệm
 
-**CHƯA THỰC HIỆN.** Sinh viên 4 điền số thật sau khi chạy.
+| Chỉ số | Kết quả thực nghiệm trên tập Test |
+| ------ | --------------------------------- |
+| MSE    | 2.654661e+10                      |
+| RMSE   | 162,931.31 USD                    |
+| MAE    | 97,840.48 USD                     |
+| R2     | 0.8154                            |
 
 ## 11. Hạn chế và thảo luận
 

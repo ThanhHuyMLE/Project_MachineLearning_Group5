@@ -44,12 +44,12 @@ Xem [pseudocode.md](../pseudocode.md) mục Decision Tree Regression.
 File: `src/house_price/models/decision_tree.py`,
 class `DecisionTreeRegressorModel` (TODO: Sinh viên 4 điền).
 
-| Phương thức | Công việc |
-|---|---|
-| `__init__(max_depth=None, ...)` | Lưu cấu hình, chưa có cây |
-| `build_model()` | Tạo `sklearn DecisionTreeRegressor`, reset trạng thái |
-| `fit(X_train, y_train)` | Xây cây bằng cách chia đệ quy |
-| `predict(X_test)` | Đi từ gốc xuống lá, báo lỗi nếu chưa fit |
+| Phương thức                     | Công việc                                             |
+| ------------------------------- | ----------------------------------------------------- |
+| `__init__(max_depth=None, ...)` | Lưu cấu hình, chưa có cây                             |
+| `build_model()`                 | Tạo `sklearn DecisionTreeRegressor`, reset trạng thái |
+| `fit(X_train, y_train)`         | Xây cây bằng cách chia đệ quy                         |
+| `predict(X_test)`               | Đi từ gốc xuống lá, báo lỗi nếu chưa fit              |
 
 ## 7. Dữ liệu sử dụng
 
@@ -67,9 +67,14 @@ cách chia, chỉ để học, không vẽ cây đầy đủ vì quá lớn.
 
 ## 10. Kết quả thực nghiệm
 
-**CHƯA THỰC HIỆN.** Sinh viên 4 điền số thật sau khi chạy.
-Chú ý ghi lại `max_depth` thực tế dùng, vì cây không giới hạn độ sâu
-dễ overfitting trên tập train.
+| Chỉ số | Kết quả thực nghiệm trên tập Test |
+| ------ | --------------------------------- |
+| MSE    | 4.427875e+10                      |
+| RMSE   | 210,425.17 USD                    |
+| MAE    | 106,562.20 USD                    |
+| R2     | 0.6921                            |
+
+_(Ghi chú: Cây quyết định chạy với tham số mặc định, không giới hạn `max_depth` nên xảy ra hiện tượng overfitting khá nặng so với các mô hình khác)._
 
 ## 11. Hạn chế và thảo luận
 
