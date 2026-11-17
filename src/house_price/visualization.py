@@ -1,4 +1,4 @@
-"""Bieu do danh gia Hoi quy (Sinh vien 3).
+"""Bieu do danh gia Hoi quy (Stage 03).
 
 Khong sinh bieu do gia: cac ham chi ve khi duoc goi voi du doan that.
 Neu truyen ``save_path`` thi luu file anh, neu khong thi tra ve figure.

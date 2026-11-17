@@ -7,7 +7,7 @@
 | `data/kc_house_data_NaN/data_raw/` | Dữ liệu King County gốc, không sửa |
 | `data/processed/` | Dữ liệu sinh ra khi chạy (gitignored) |
 | `src/house_price/preprocessing.py` | Nạp dữ liệu, chia tập, chống rò rỉ dữ liệu |
-| `src/house_price/models/` | Lớp mô hình theo mẫu 4 phương thức |
+| `src/house_price/models/` | Lớp mô hình theo mẫu 4 phương thức, viết tay bằng NumPy |
 | `src/house_price/evaluation.py` | MSE, RMSE, MAE, R2, MAPE |
 | `src/house_price/visualization.py` | Biểu đồ đánh giá và so sánh |
 | `src/house_price/model_comparison.py` | Bảng đối chiếu 4 mô hình |
@@ -59,29 +59,33 @@ validation, test và nhà mới. Xem
   (số: median + `StandardScaler`; `zipcode`: mode + one-hot).
 - `output_feature_names(preprocessor)` -> tên 88 cột sau mã hóa.
 - `prepare_data(path)` -> dict đầy đủ 3 tập đã chuẩn hóa + preprocessor,
-  thêm `input_columns` (19 cột đầu vào trước mã hóa) và `id_train`,
+  thêm `feature_columns` (tên cột sau mã hóa, 88 cột),
+  `input_columns` (19 cột đầu vào trước mã hóa) và `id_train`,
   `id_val`, `id_test` (chỉ để kiểm chứng chia theo nhóm).
 - Hằng số dùng chung: `TARGET_COLUMN = "price"`,
   `DROP_COLUMNS = ["Unnamed: 0", "id", "date"]`,
   `FEATURE_COLUMNS` (19 cột, xem `docs/king-county-dataset.md`),
   `NUMERIC_COLUMNS` (18 cột số sau kỹ thuật đặc trưng),
-  `CATEGORICAL_COLUMNS = ["zipcode"]`.
+  `CATEGORICAL_COLUMNS = ["zipcode"]`, `RANDOM_STATE = 42`,
+  `TEST_SIZE = 0.15`, `VAL_SIZE = 0.15`.
 
 ### Mô hình (`models/`)
 
-Mỗi class tuân theo cùng mẫu:
+Cả 4 mô hình đều viết tay bằng NumPy, không dùng estimator có sẵn của
+scikit-learn (xem `adr/007-mo-hinh-code-tay.md`). scikit-learn chỉ dùng
+cho tiền xử lý và metrics. Mỗi class tuân theo cùng mẫu:
 
 ```python
 model = MLPRegressorModel()
-model.build_model()
-model.fit(X_train, y_train)
+model.build_model(input_size=X_train.shape[1])  # riêng MLP cần input_size
+model.fit(X_train, y_train, X_val=X_val, y_val=y_val)
 y_pred = model.predict(X_test)
 ```
 
 | Phương thức | Công việc |
 |---|---|
 | `__init__(...)` | Khai báo cấu hình và biến trạng thái, chưa học |
-| `build_model()` | Tạo estimator/kiến trúc, reset trạng thái |
+| `build_model(...)` | Tạo kiến trúc, reset trạng thái. MLP bắt buộc nhận `input_size`; 3 mô hình còn lại không tham số |
 | `fit(X_train, y_train)` | Huấn luyện trên train, lưu lịch sử nếu có |
 | `predict(X_test)` | Trả giá trị dự đoán, báo lỗi nếu chưa fit |
 
@@ -89,6 +93,29 @@ y_pred = model.predict(X_test)
 Phải build trước fit, fit trước predict. Build lại sẽ xóa trạng thái đã học.
 `__init__.py` trong package chỉ đánh dấu package và export tên class;
 khác với phương thức `__init__()` của class.
+
+Hợp đồng riêng từng mô hình:
+
+- `MLPRegressorModel` (`models/mlp.py`): Dense(32, ReLU) ->
+  Dense(16, ReLU) -> Dense(1, Linear), He init, Adam có bias-correction,
+  mini-batch + shuffle. `fit(X_train, y_train, X_val=None, y_val=None)`
+  theo dõi `history_` gồm `loss` và `val_loss`; sau fit tự lưu tham số
+  JSON vào `save_path` (mặc định `outputs/mlp_parameters.json`).
+- `LinearRegressorModel` (`models/linear_regression.py`): batch gradient
+  descent viết tay, `learning_rate=0.1`, `max_epochs=1000`, `tol=1e-6`
+  tương đối. `coef_`, `intercept_`, `history_`, `n_iter_`,
+  `converged_`; `export_params(path, feature_names)` xuất JSON.
+- `DecisionTreeRegressorModel` (`models/decision_tree.py`): cây CART
+  viết tay, xây bằng ngăn xếp (lặp, không đệ quy), ngưỡng là trung điểm
+  giá trị riêng biệt liên tiếp. `tree_` là dict lồng nhau;
+  `feature_importances_` chuẩn hóa về tổng 1.
+- `RandomForestRegressorModel` (`models/random_forest.py`): bagging
+  viết tay trên cây CART viết tay. Bootstrap qua `SeedSequence` spawn,
+  mỗi cây một dãy con riêng. `max_features` mặc định `None` (xét mọi
+  đặc trưng tại mỗi lần chia); `n_estimators=100` mặc định.
+  `predict` trả trung bình dự đoán các cây trong `trees_`.
+- `BaseRegressorModel` (`models/base.py`): lớp cơ sở nhẹ, chỉ quản lý
+  trạng thái `_is_built`/`_is_fitted` và báo lỗi khi gọi sai thứ tự.
 
 ### Đánh giá (`evaluation.py`)
 
@@ -104,17 +131,28 @@ khác với phương thức `__init__()` của class.
 
 ### Điều phối (`train_evaluate.py`)
 
-- `main()` chạy: nạp dữ liệu -> chia tập -> build 4 mô hình -> train ->
-  predict -> đánh giá -> so sánh -> lưu `outputs/metrics.csv`.
+- `main(argv=None)` chạy: nạp dữ liệu -> chia tập -> build 4 mô hình ->
+  train -> predict -> đánh giá -> so sánh -> lưu `outputs/metrics.csv`,
+  `outputs/predictions.csv`, biểu đồ và `outputs/mlp_parameters.json`.
+  Nhận tham số dòng lệnh `--data` (đường dẫn CSV) và `--output-dir`.
+- `build_models(output_dir)` tạo 4 mô hình; MLP lưu tham số vào
+  `output_dir/mlp_parameters.json`.
+- `train_and_evaluate(data, output_dir)` fit MLP với `X_val`/`y_val`
+  (nếu `prepare_data` không trả validation thì tách 15% từ train),
+  3 mô hình còn lại fit trên train; vẽ `actual_vs_predicted_<slug>.png`
+  cho từng mô hình, `training_history_<slug>.png` khi có loss history,
+  và `comparison_{rmse,mae,r2}.png`.
 - Không viết logic mô hình hay metric trực tiếp trong file này;
   chỉ gọi các module chuyên trách.
 
 ## Quyết định kiến trúc (tóm tắt)
 
-- **Modular monolith, kiến trúc phân lớp đơn giản:** nhóm 4 người, một
-  đơn vị triển khai, dữ liệu dùng chung. Không microservices, không
-  database, không API (xem `adr/001-kien-truc-modular-monolith.md`).
+- **Modular monolith, kiến trúc phân lớp đơn giản:** một đơn vị triển
+  khai, dữ liệu dùng chung. Không microservices, không database, không
+  API (xem `adr/001-kien-truc-modular-monolith.md`).
 - **Giữ cấu trúc gốc có sẵn** (`data/`, `docs/`, `models/`, `notebooks/`,
   `src/`), chỉ sắp xếp lại bên trong `src/` và bổ sung thư mục thiếu.
 - **Notebook chỉ demo:** logic dùng lại nằm trong `src/`, notebook gọi
   module đó để demo và thí nghiệm, không viết class riêng trong notebook.
+- **Mọi mô hình code tay bằng NumPy** (xem `adr/007-mo-hinh-code-tay.md`,
+  thay thế ADR-004).

@@ -5,9 +5,11 @@ matplotlib>=3.7
 seaborn>=0.12
 joblib>=1.3
 
-# TensorFlow/Keras: CHUA cai dat trong Phase 1.
-# Ly do: moi truong Python 3.14 tren may nhom hien chua co TensorFlow,
-# va sklearn MLPRegressor da du cho kien truc MLP cua bai tap.
-# Sinh vien 2 kiem tra kha nang cai dat truoc khi quyet dinh dung Keras.
-# Neu dung Keras, bo ghi chu dong nay va ghim phien ban cu the.
+# TensorFlow/Keras: KHONG dung trong du an.
+# Ly do: moi mo hinh (MLP, Linear Regression, Decision Tree, Random
+# Forest) deu code tay bang NumPy theo ADR-007; scikit-learn chi dung
+# cho tien xu ly (imputer, scaler, encoder, chia tap) va do chi so
+# (metrics). Khong dung class mo hinh cua scikit-learn
+# (MLPRegressor, LinearRegression, DecisionTreeRegressor,
+# RandomForestRegressor) va khong dung TensorFlow/Keras.
 # tensorflow>=2.15

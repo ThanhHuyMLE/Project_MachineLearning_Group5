@@ -1,4 +1,4 @@
-"""Bảng so sánh các mô hình Hồi quy (Sinh viên 4).
+"""Bảng so sánh các mô hình Hồi quy (Stage 04).
 
 Mỗi mô hình phải được đánh giá trên cùng tập test và cùng quy trình
 đánh giá thì bảng so sánh mới công bằng.

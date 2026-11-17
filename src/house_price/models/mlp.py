@@ -121,9 +121,7 @@ class MLPRegressorModel(BaseRegressorModel):
         pre_activations = []
         current = X
 
-        for layer_index, (weight, bias) in enumerate(
-            zip(self.weights_, self.biases_)
-        ):
+        for layer_index, (weight, bias) in enumerate(zip(self.weights_, self.biases_)):
             z = current @ weight + bias
             pre_activations.append(z)
 
@@ -162,9 +160,7 @@ class MLPRegressorModel(BaseRegressorModel):
 
             if layer_index > 0:
                 delta = delta @ self.weights_[layer_index].T
-                delta *= self._relu_derivative(
-                    pre_activations[layer_index - 1]
-                )
+                delta *= self._relu_derivative(pre_activations[layer_index - 1])
 
         return grad_weights, grad_biases
 
@@ -180,48 +176,32 @@ class MLPRegressorModel(BaseRegressorModel):
         for index in range(len(self.weights_)):
             # Moment bậc nhất và bậc hai cho weights.
             self._adam_m_weights[index] = (
-                self.beta1 * self._adam_m_weights[index]
-                + (1.0 - self.beta1) * grad_weights[index]
+                self.beta1 * self._adam_m_weights[index] + (1.0 - self.beta1) * grad_weights[index]
             )
-            self._adam_v_weights[index] = (
-                self.beta2 * self._adam_v_weights[index]
-                + (1.0 - self.beta2) * np.square(grad_weights[index])
-            )
+            self._adam_v_weights[index] = self.beta2 * self._adam_v_weights[index] + (
+                1.0 - self.beta2
+            ) * np.square(grad_weights[index])
 
             # Moment bậc nhất và bậc hai cho biases.
             self._adam_m_biases[index] = (
-                self.beta1 * self._adam_m_biases[index]
-                + (1.0 - self.beta1) * grad_biases[index]
+                self.beta1 * self._adam_m_biases[index] + (1.0 - self.beta1) * grad_biases[index]
             )
-            self._adam_v_biases[index] = (
-                self.beta2 * self._adam_v_biases[index]
-                + (1.0 - self.beta2) * np.square(grad_biases[index])
-            )
+            self._adam_v_biases[index] = self.beta2 * self._adam_v_biases[index] + (
+                1.0 - self.beta2
+            ) * np.square(grad_biases[index])
 
             # Hiệu chỉnh độ lệch ban đầu của các moment.
-            m_weight_hat = self._adam_m_weights[index] / (
-                1.0 - self.beta1**step
-            )
-            v_weight_hat = self._adam_v_weights[index] / (
-                1.0 - self.beta2**step
-            )
-            m_bias_hat = self._adam_m_biases[index] / (
-                1.0 - self.beta1**step
-            )
-            v_bias_hat = self._adam_v_biases[index] / (
-                1.0 - self.beta2**step
-            )
+            m_weight_hat = self._adam_m_weights[index] / (1.0 - self.beta1**step)
+            v_weight_hat = self._adam_v_weights[index] / (1.0 - self.beta2**step)
+            m_bias_hat = self._adam_m_biases[index] / (1.0 - self.beta1**step)
+            v_bias_hat = self._adam_v_biases[index] / (1.0 - self.beta2**step)
 
             # Cập nhật tham số.
             self.weights_[index] -= (
-                self.learning_rate
-                * m_weight_hat
-                / (np.sqrt(v_weight_hat) + self.epsilon)
+                self.learning_rate * m_weight_hat / (np.sqrt(v_weight_hat) + self.epsilon)
             )
             self.biases_[index] -= (
-                self.learning_rate
-                * m_bias_hat
-                / (np.sqrt(v_bias_hat) + self.epsilon)
+                self.learning_rate * m_bias_hat / (np.sqrt(v_bias_hat) + self.epsilon)
             )
 
     def fit(self, X_train, y_train, X_val=None, y_val=None):
@@ -322,7 +302,7 @@ class MLPRegressorModel(BaseRegressorModel):
             json.dump(payload, file, ensure_ascii=False, indent=2)
 
         return self
-    
+
     def predict(self, X):
         """Dự đoán một giá trị cho mỗi mẫu đầu vào."""
         self._require_fitted()
@@ -333,8 +313,7 @@ class MLPRegressorModel(BaseRegressorModel):
             raise ValueError("X phải là ma trận hai chiều.")
         if X_array.shape[1] != self._input_size:
             raise ValueError(
-                f"Mạng cần {self._input_size} đặc trưng, "
-                f"nhưng X có {X_array.shape[1]} đặc trưng."
+                f"Mạng cần {self._input_size} đặc trưng, nhưng X có {X_array.shape[1]} đặc trưng."
             )
         if not np.isfinite(X_array).all():
             raise ValueError("X không được chứa NaN hoặc vô cực.")
