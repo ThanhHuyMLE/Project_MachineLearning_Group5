@@ -29,12 +29,14 @@ Dữ liệu: King County House Sales, 21.613 giao dịch từ tháng 5/2014
 ## Phạm vi
 
 - Chỉ làm bài toán Hồi quy giá nhà King County, theo đề Bài tập thực hành 4.
-- Không xây engine neural network hay cây quyết định từ đầu nếu giảng viên
-  không yêu cầu rõ ràng.
-- Không thêm web app, backend service, database, Docker hay CI/CD trong Architecture Setup Milestone.
-- MLP được cài đặt thủ công bằng NumPy theo yêu cầu dự án.
-- Các mô hình đối chiếu có thể dùng scikit-learn.
-- NumPy chỉ được dùng cho phép tính mảng; không dùng thư viện để triển khai MLP, Backpropagation hoặc optimizer.
+- Cả 4 mô hình đều được cài đặt bằng thư viện NumPy theo quy tắc
+  của nhóm (xem [adr/007-mo-hinh-numpy.md](adr/007-mo-hinh-numpy.md)):
+  không dùng class mô hình của scikit-learn, không dùng TensorFlow/Keras.
+  NumPy chỉ được dùng cho phép tính mảng; không dùng thư viện để triển
+  khai MLP, Backpropagation, optimizer, cây CART hay bagging.
+- scikit-learn chỉ dùng cho tiền xử lý (imputer, scaler, encoder, chia
+  tập) và đo chỉ số (metrics).
+- Không thêm web app, backend service, database, Docker hay CI/CD.
 
 ## Căn cứ kiến thức
 
@@ -48,6 +50,15 @@ Dữ liệu: King County House Sales, 21.613 giao dịch từ tháng 5/2014
 - Quy ước làm việc của dự án trước CLASSIFYING-SPAM-EMAILS:
   mẫu class 4 phương thức, quy tắc commit, tài liệu ngắn gọn có liên kết.
   Chỉ kế thừa quy ước kỹ thuật, không kế thừa nội dung phân loại email.
+
+## Các Stage
+
+- Stage 01: Data Understanding & Preprocessing - dữ liệu, kỹ thuật đặc
+  trưng, chia tập, chuẩn hóa.
+- Stage 02: MLP Architecture & Implementation - kiến trúc và cài đặt MLP.
+- Stage 03: Model Training & Evaluation - huấn luyện, đánh giá, trực quan hóa.
+- Stage 04: Model Benchmarking & Analysis - 3 mô hình đối chiếu và bảng
+  so sánh 4 mô hình.
 
 ## Sản phẩm
 

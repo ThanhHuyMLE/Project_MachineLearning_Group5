@@ -4,7 +4,7 @@ Mọi hàm chỉ vẽ từ dữ liệu thật được truyền vào, không sin
 Nếu truyền ``save_path`` thì lưu file ảnh, nếu không thì trả về figure
 để notebook hiển thị. Biểu đồ EDA tách riêng khỏi ``visualization.py``
 (vốn vẽ biểu đồ đánh giá mô hình của Stage 03: Model Training & Evaluation).
-(vốn vẽ biểu đồ đánh giá mô hình của Sinh viên 3).
+(vốn vẽ biểu đồ đánh giá mô hình của Stage 03).
 
 ``summarize_eda`` tính toàn bộ số liệu EDA mô tả (thiếu, trùng, phân bố
 giá, tương quan, giá theo grade/view/waterfront, đặc trưng mới) thành dict

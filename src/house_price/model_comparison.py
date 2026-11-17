@@ -1,6 +1,6 @@
-"""Bảng so sánh các mô hình Hồi quy (Sinh viên 4).
+"""Bảng so sánh các mô hình Hồi quy (Stage 04).
 
-Mỗi mô hình phải được đánh giá trên cùng tập test và cùng quy trình
+Mỗi mô hình phải được đánh giá trên cùng tập đánh giá và cùng quy trình
 đánh giá thì bảng so sánh mới công bằng.
 """
 
@@ -8,13 +8,15 @@ from __future__ import annotations
 
 import pandas as pd
 
-METRIC_COLUMNS = ["model", "mse", "rmse", "mae", "r2"]
+METRIC_COLUMNS = ["model", "mse", "rmse", "mae", "r2", "mape"]
 
 
 def compare_models(results: dict[str, dict[str, float | None]]) -> pd.DataFrame:
     """Gộp metric của các mô hình thành DataFrame, sắp theo MSE tăng dần.
 
     ``results`` có dạng ``{"ten_mo_hinh": {"mse": ..., "rmse": ..., ...}}``.
+    MAPE có thể là None (khi có giá trị thật bằng 0): giá trị đó thành
+    NaN trong bảng, không làm crash khi sắp xếp hay hiển thị.
     """
     rows = [
         {"model": name, **{k: metrics.get(k) for k in METRIC_COLUMNS[1:]}}

@@ -16,14 +16,23 @@
 | 12 | Viết docs | Các file có liên kết, mỗi file cố gắng dưới 200 dòng |
 | 13 | Kiểm tra | `pytest` pass, `ruff check` sạch, pipeline chạy tròn đầu đến cuối |
 
+Trạng thái: các bước 1-8 đã xong (cả 4 mô hình đều được cài đặt bằng thư viện NumPy, xem [adr/007-mo-hinh-numpy.md](adr/007-mo-hinh-numpy.md));
+bước 9-10 đang làm ở Stage 04 (bảng benchmark chính chưa có số liệu,
+xem [progress_results.md](progress_results.md)); bước 11-13 làm sau
+khi benchmark xong.
+
 ## Thứ tự sử dụng class mô hình
 
 ```python
 model = MLPRegressorModel()
-model.build_model()
-model.fit(X_train, y_train)
+model.build_model(input_size=X_train.shape[1])  # pipeline hiện tại: 88
+model.fit(X_train, y_train, X_val=X_val, y_val=y_val)
 y_pred = model.predict(X_test)
 ```
+
+Riêng MLP cần truyền `input_size` khi build (số cột của ma trận trọng
+số tầng đầu tiên bằng `input_size`); 3 mô hình còn lại gọi
+`build_model()` không tham số vì suy ra số chiều từ dữ liệu lúc fit.
 
 ## Tham số giữ cố định
 
@@ -48,6 +57,11 @@ y_pred = model.predict(X_test)
    đánh giá, vẽ biểu đồ, phân tích overfitting.
 4. Mỗi Stage tự cập nhật tài liệu thuật toán của mình và ghi kết quả thật
    vào [progress_results.md](progress_results.md) sau mỗi công đoạn.
+
+Lưu ý về tên gọi: "Phase 1" và "Phase 2" xuất hiện trong một số tài
+liệu cũ (DESIGN.md, ADR-001 đến ADR-004) là milestone phát triển
+lịch sử, không phải tên Stage. Tổ chức kỹ thuật hiện tại chỉ dùng 4
+tên Stage 01-04 ở trên.
 
 ## Cập nhật sau mỗi công đoạn
 

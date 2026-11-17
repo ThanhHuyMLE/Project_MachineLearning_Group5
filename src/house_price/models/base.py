@@ -22,8 +22,15 @@ class BaseRegressorModel(ABC):
         self.history_ = None
 
     @abstractmethod
-    def build_model(self):
-        """Tạo estimator/kiến trúc và reset trạng thái đã học."""
+    def build_model(self, input_size=None):
+        """Tạo estimator/kiến trúc và reset trạng thái đã học.
+
+        ``input_size`` là số chiều của đầu vào. Tham số này bắt buộc
+        với mô hình mà kiến trúc phụ thuộc vào số chiều input (ví dụ
+        MLP viết tay: số cột của ma trận trọng số tầng đầu tiên bằng
+        ``input_size``), và không bắt buộc với mô hình khác (ví dụ
+        hồi quy tuyến tính suy ra số chiều từ dữ liệu lúc fit).
+        """
 
     @abstractmethod
     def fit(self, X_train, y_train):

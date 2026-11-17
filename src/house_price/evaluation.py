@@ -1,4 +1,4 @@
-"""Chỉ số đánh giá Hồi quy (Sinh viên 3).
+"""Chỉ số đánh giá Hồi quy (Stage 03).
 
 MSE, RMSE, MAE càng nhỏ càng tốt. R2 càng lớn càng tốt, có thể âm.
 MAPE chỉ có ý nghĩa khi giá trị thật khác 0; trả None nếu có giá trị 0.

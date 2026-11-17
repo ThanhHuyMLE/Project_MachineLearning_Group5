@@ -10,20 +10,20 @@ Bài tập xây dựng và đánh giá mô hình hồi quy Multi-Layer Perceptro
   - Phân bố lệch phải mạnh (`skewness = 4,02`, `kurtosis = 34,59`), với P90 = **887.000 USD**, P95 = **1.156.480 USD**, P99 = **1.964.400 USD**. Do đuôi phải dài chịu ảnh hưởng của nhà cao cấp, chỉ số RMSE cần được đọc song song với MAE và $R^2$.
 - **Đặc trưng nổi bật:**
   - Tương quan Pearson mạnh nhất với `price`: `sqft_living` (**0,702**), `grade` (**0,667**), `sqft_above` (**0,606**), `sqft_living15` (**0,585**), `sqft_per_bedroom` (**0,580**), `bathrooms` (**0,526**).
-  - Nhà giáp mặt nước (`waterfront = 1`, 163 căn — 0,75%) có giá trung bình **1.661.876 USD**, cao gấp **3,13 lần** nhà không giáp nước (**531.564 USD**).
+  - Nhà giáp mặt nước (`waterfront = 1`, 163 căn - 0,75%) có giá trung bình **1.661.876 USD**, cao gấp **3,13 lần** nhà không giáp nước (**531.564 USD**).
 
 ## 2. Tiền xử lý & Kỹ thuật đặc trưng (Stage 01)
 
 Toàn bộ pipeline trong `src/house_price/preprocessing.py` chỉ `fit` trên tập `train` để ngăn rò rỉ dữ liệu:
 
 1. **Làm sạch & Giữ tính toàn vẹn phân bố:**
-   - **Giá trị khuyết:** Bù khuyết bằng trung vị (`median`) của tập `train` cho `bedrooms` (khuyết 13 giá trị — 0,06%), `bathrooms` (khuyết 10 giá trị — 0,05%) và `sqft_per_bedroom` (khuyết 13 giá trị).
+   - **Giá trị khuyết:** Bù khuyết bằng trung vị (`median`) của tập `train` cho `bedrooms` (khuyết 13 giá trị - 0,06%), `bathrooms` (khuyết 10 giá trị - 0,05%) và `sqft_per_bedroom` (khuyết 13 giá trị).
    - **Bản ghi trùng `id`:** Có 0 dòng trùng hoàn toàn; 176 `id` xuất hiện lặp lại (tổng 353 dòng, cách nhau tối đa 315 ngày). Giữ nguyên toàn bộ 21.613 dòng vì đây là các giao dịch bán lại hợp lệ ở thời điểm khác nhau.
    - **Ngoại lai:** Giữ nguyên 1.146 dòng (5,3%) vượt ngưỡng trên IQR (`1.129.575 USD`) để bảo toàn phân khúc bất động sản cao cấp.
 2. **Feature Engineering (19 cột đầu vào):**
-   - `house_age`: Tuổi nhà (`năm bán - yr_built`), kẹp tối thiểu về 0 cho 12 dòng có `yr_built > năm bán` (miền `0–115`, trung vị `40`).
-   - `was_renovated`: Cờ nhị phân nhà đã từng cải tạo (`908` dòng — `4,20%`).
-   - `sqft_per_bedroom`: Diện tích sống trên mỗi phòng ngủ (`49,09–3.420,00`, trung vị `576,67`).
+   - `house_age`: Tuổi nhà (`năm bán - yr_built`), kẹp tối thiểu về 0 cho 12 dòng có `yr_built > năm bán` (miền `0-115`, trung vị `40`).
+   - `was_renovated`: Cờ nhị phân nhà đã từng cải tạo (`908` dòng - `4,20%`).
+   - `sqft_per_bedroom`: Diện tích sống trên mỗi phòng ngủ (`49,09-3.420,00`, trung vị `576,67`).
 3. **Chia tập theo nhóm `id` (`GroupShuffleSplit`, tỷ lệ 70/15/15, `random_state=42`):**
    - `train`: **15.129 dòng** (`y_train` trung bình **537.298 USD**).
    - `val`: **3.243 dòng** (`y_val` trung bình **547.304 USD**).
@@ -41,14 +41,22 @@ Toàn bộ pipeline trong `src/house_price/preprocessing.py` chỉ `fit` trên t
 
 ### 4.1. Đánh giá trên pipeline chuẩn 88 đặc trưng (`metrics.csv`)
 
-| Mô hình | MSE | RMSE (USD) | MAE (USD) | R2 |
-|---|---:|---:|---:|---:|
-| **MLP Regression** | **23.679.224.804,72** | **153.880,55** | **90.391,93** | **0,8354** |
-| Linear Regression | 26.546.613.099,42 | 162.931,31 | 97.840,49 | 0,8154 |
+| Mô hình | MSE | RMSE (USD) | MAE (USD) | R2 | MAPE |
+|---|---:|---:|---:|---:|---:|
+| MLP Regression | 23.679.224.804,72 | 153.880,55 | 90.391,93 | 0,8354 | 18,0595% |
+| Linear Regression | 27.053.237.258,13 | 164.478,68 | 99.082,41 | 0,8119 | 20,2726% |
+| Decision Tree Regression | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 | 18,2854% |
+| **Random Forest Regression** | **19.584.927.856,05** | **139.946,16** | **77.253,52** | **0,8638** | **14,6857%** |
 
-- **Nhận xét:** Trên tập dữ liệu đã chuẩn hóa đầy đủ 88 đặc trưng, `MLP Regression` đạt **$R^2 = 0,8354$**, giảm **9.050,76 USD** ở chỉ số RMSE (-5,56%) và giảm **7.448,55 USD** ở chỉ số MAE (-7,61%) so với `Linear Regression` ($R^2 = 0,8154$). Các tầng ẩn ReLU đã học được quan hệ phi tuyến giữa quy mô căn nhà, chất lượng xây dựng và khu vực `zipcode`.
+Thời gian fit trong lần chạy ngày 17/11/2026 (tổng thời gian 294,13 giây): Random Forest 251,47 giây; MLP 26,18 giây; Linear Regression 4,77 giây; Decision Tree 2,15 giây. MAPE đo trong lần chạy lại cùng cấu hình và cùng seed (MSE/RMSE/MAE/R2 khớp hệt lần chạy gốc, lệch 0).
 
-### 4.2. Đối chiếu 4 mô hình trên 19 đặc trưng thô chưa chuẩn hóa (Notebook Cell 44)
+Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên không còn nguyên vẹn thống kê; các số trong bảng 4.1 là đo thật của lần chạy này nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
+
+- **Nhận xét:** Trên tập dữ liệu đã chuẩn hóa đầy đủ 88 đặc trưng, `Random Forest Regression` đạt kết quả tốt nhất (**$R^2 = 0,8638$**, RMSE `139.946,16 USD`, MAE `77.253,52 USD`). `MLP Regression` đạt **$R^2 = 0,8354$**, giảm **10.598,13 USD** ở chỉ số RMSE (-6,44%) và giảm **8.690,48 USD** ở chỉ số MAE (-8,77%) so với `Linear Regression` được cài đặt bằng thư viện NumPy ($R^2 = 0,8119$). Số Linear Regression Stage 03 dùng sklearn OLS ($R^2 = 0,8154$) chỉ giữ làm lịch sử trong `docs/progress_results.md`, không dùng trong bảng này. Các tầng ẩn ReLU đã học được quan hệ phi tuyến giữa quy mô căn nhà, chất lượng xây dựng và khu vực `zipcode`.
+
+### 4.2. Thí nghiệm bổ sung: đối chiếu 4 mô hình trên 19 đặc trưng thô chưa chuẩn hóa
+
+> Bảng này là thí nghiệm bổ sung (preprocessing ablation), KHÔNG so sánh trực tiếp với bảng 4.1 vì khác pipeline (19 cột thô so với 88 cột đã chuẩn hóa). Số liệu trong bảng là lịch sử từ phiên bản notebook 19 đặc trưng trước khi viết lại sang pipeline 88 đặc trưng, không còn tái lập được từ notebook hiện tại. Thí nghiệm dùng cùng tập test để rút ra kết luận về tiền xử lý nên có giới hạn test-peeking; xem chi tiết trong `docs/progress_results.md`.
 
 | Mô hình | MSE | RMSE (USD) | MAE (USD) | R2 |
 |---|---:|---:|---:|---:|
@@ -58,13 +66,13 @@ Toàn bộ pipeline trong `src/house_price/preprocessing.py` chỉ `fit` trên t
 | MLP Regression (`input_size=19`, chưa scale) | 57.180.536.969,47 | 239.124,52 | 158.949,50 | 0,6024 |
 
 - **Nhận xét:**
-  - Khi huấn luyện trên 19 cột thô chưa qua `StandardScaler`, sự chênh lệch thang đo lớn giữa các biến (`sqft_lot` lên tới `1.651.359` trong khi các cờ nhị phân chỉ nhận `0/1`) khiến gradient của MLP hội tụ kém ($R^2 = 0,6024$, RMSE = `239.124,52 USD`). Khi áp dụng `StandardScaler` và one-hot `zipcode`, $R^2$ tăng mạnh từ `0,6024` lên `0,8354`.
+  - Khi huấn luyện trên 19 cột thô chưa qua `StandardScaler`, sự chênh lệch thang đo lớn giữa các biến (`sqft_lot` lên tới `1.651.359` trong khi các cờ nhị phân chỉ nhận `0/1`) khiến gradient của MLP hội tụ kém ($R^2 = 0,6024$, RMSE = `239.124,52 USD`). Khi áp dụng `StandardScaler` và one-hot `zipcode`, MLP trên pipeline 88 đặc trưng đạt $R^2 = 0,8354$. Hai số 0,6024 và 0,8354 thuộc hai pipeline khác nhau nên không so sánh trực tiếp như một mức tăng; chỉ ghi nhận xu hướng trong thí nghiệm ablation lịch sử này là chuẩn hóa giúp MLP hội tụ tốt hơn hẳn.
   - `Random Forest` đạt kết quả tốt nhất trên dữ liệu dạng bảng ($R^2 = 0,8802$, MAE = `72.558,23 USD`) do các thuật toán cây quyết định không bị ảnh hưởng bởi thang đo của đặc trưng.
 
 ## 5. Kết luận & Hướng cải tiến
 
 - **Kết luận:** Pipeline tiền xử lý chống rò rỉ dữ liệu theo nhóm `id` kết hợp chuẩn hóa `StandardScaler` và one-hot `zipcode` đóng vai trò quyết định đến hiệu năng của mạng nơ-ron MLP, giúp mô hình vượt qua hồi quy tuyến tính cơ sở trên toàn bộ các chỉ số đánh giá (`MSE`, `RMSE`, `MAE`, `R2`).
 - **Hướng cải tiến:**
-  1. Cập nhật các cell huấn luyện trong `practice_04_mlp_regression.ipynb` (Cell 30–44) dùng đồng nhất ma trận 88 đặc trưng `X_train_prep`, `X_val_prep`, `X_test_prep` cho cả 4 mô hình để hoàn thiện bảng so sánh cuối cùng.
+  1. Đã xong (2026-11-17): các cell huấn luyện (Cell 30-44) đã dùng đồng nhất ma trận 88 đặc trưng `X_train_prep`, `X_val_prep`, `X_test_prep` cho cả 4 mô hình; bảng so sánh cuối cùng đã hoàn thiện.
   2. Thử nghiệm biến đổi `log1p(price)` cho biến mục tiêu để giảm độ lệch phải (`skew = 4,02`), giúp giảm sai số trên phân khúc nhà cao cấp trên 1 triệu USD, đồng thời bổ sung Early Stopping dựa trên `val_loss`.
-```[cite: 20, 21, 22]
+```
