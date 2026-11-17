@@ -70,8 +70,12 @@ ghi "dùng thư viện ML có sẵn" cũng được sửa theo quy tắc mới.
   trong `src/house_price/models/decision_tree.py`: CART viết tay,
   ngưỡng là trung điểm giá trị riêng biệt liên tiếp, tìm kiếm bằng
   sort + cumulative sum, `x <= threshold` đi trái, lá là trung bình
-  target. Fit thăm dò: `max_depth=8` hết 1,12 giây (R2 test 0,7314),
-  không giới hạn hết 32,29 giây (R2 test 0,6880, overfit).
+  target. Fit thăm dò trên test: `max_depth=8` hết 1,12 giây (R2 test
+  0,7314), không giới hạn hết 32,29 giây (R2 test 0,6880, overfit).
+  Hai số test này chỉ minh họa overfit; căn cứ chọn `max_depth=8`
+  là số trên validation đã xác nhận (`max_depth=8` R2 0,7198, không
+  giới hạn R2 0,6926; `scripts/compare_validation.py`,
+  `outputs/validation_comparison.csv`).
 - **Random Forest (xong, Stage 04):** `RandomForestRegressorModel`
   trong `src/house_price/models/random_forest.py`: bootstrap qua
   `SeedSequence` spawn, mỗi cây một dãy con riêng, lấy mẫu đặc trưng

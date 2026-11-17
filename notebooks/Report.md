@@ -41,14 +41,14 @@ Toàn bộ pipeline trong `src/house_price/preprocessing.py` chỉ `fit` trên t
 
 ### 4.1. Đánh giá trên pipeline chuẩn 88 đặc trưng (`metrics.csv`)
 
-| Mô hình | MSE | RMSE (USD) | MAE (USD) | R2 |
-|---|---:|---:|---:|---:|
-| MLP Regression | 23.679.224.804,72 | 153.880,55 | 90.391,93 | 0,8354 |
-| Linear Regression | 27.053.237.258,13 | 164.478,68 | 99.082,41 | 0,8119 |
-| Decision Tree Regression | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 |
-| **Random Forest Regression** | **19.584.927.856,05** | **139.946,16** | **77.253,52** | **0,8638** |
+| Mô hình | MSE | RMSE (USD) | MAE (USD) | R2 | MAPE |
+|---|---:|---:|---:|---:|---:|
+| MLP Regression | 23.679.224.804,72 | 153.880,55 | 90.391,93 | 0,8354 | 18,0595% |
+| Linear Regression | 27.053.237.258,13 | 164.478,68 | 99.082,41 | 0,8119 | 20,2726% |
+| Decision Tree Regression | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 | 18,2854% |
+| **Random Forest Regression** | **19.584.927.856,05** | **139.946,16** | **77.253,52** | **0,8638** | **14,6857%** |
 
-Thời gian fit trong lần chạy ngày 17/11/2026 (tổng thời gian 294,13 giây): Random Forest 251,47 giây; MLP 26,18 giây; Linear Regression 4,77 giây; Decision Tree 2,15 giây. MAPE không đo trong lần chạy này (không có trong `metrics.csv`).
+Thời gian fit trong lần chạy ngày 17/11/2026 (tổng thời gian 294,13 giây): Random Forest 251,47 giây; MLP 26,18 giây; Linear Regression 4,77 giây; Decision Tree 2,15 giây. MAPE đo trong lần chạy lại cùng cấu hình và cùng seed (MSE/RMSE/MAE/R2 khớp hệt lần chạy gốc, lệch 0).
 
 Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên không còn nguyên vẹn thống kê; các số trong bảng 4.1 là đo thật của lần chạy này nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
 
@@ -66,7 +66,7 @@ Giới hạn test-peeking: tập test đã từng bị xem trong quá trình ph�
 | MLP Regression (`input_size=19`, chưa scale) | 57.180.536.969,47 | 239.124,52 | 158.949,50 | 0,6024 |
 
 - **Nhận xét:**
-  - Khi huấn luyện trên 19 cột thô chưa qua `StandardScaler`, sự chênh lệch thang đo lớn giữa các biến (`sqft_lot` lên tới `1.651.359` trong khi các cờ nhị phân chỉ nhận `0/1`) khiến gradient của MLP hội tụ kém ($R^2 = 0,6024$, RMSE = `239.124,52 USD`). Khi áp dụng `StandardScaler` và one-hot `zipcode`, $R^2$ tăng mạnh từ `0,6024` lên `0,8354`.
+  - Khi huấn luyện trên 19 cột thô chưa qua `StandardScaler`, sự chênh lệch thang đo lớn giữa các biến (`sqft_lot` lên tới `1.651.359` trong khi các cờ nhị phân chỉ nhận `0/1`) khiến gradient của MLP hội tụ kém ($R^2 = 0,6024$, RMSE = `239.124,52 USD`). Khi áp dụng `StandardScaler` và one-hot `zipcode`, MLP trên pipeline 88 đặc trưng đạt $R^2 = 0,8354$. Hai số 0,6024 và 0,8354 thuộc hai pipeline khác nhau nên không so sánh trực tiếp như một mức tăng; chỉ ghi nhận xu hướng trong thí nghiệm ablation lịch sử này là chuẩn hóa giúp MLP hội tụ tốt hơn hẳn.
   - `Random Forest` đạt kết quả tốt nhất trên dữ liệu dạng bảng ($R^2 = 0,8802$, MAE = `72.558,23 USD`) do các thuật toán cây quyết định không bị ảnh hưởng bởi thang đo của đặc trưng.
 
 ## 5. Kết luận & Hướng cải tiến

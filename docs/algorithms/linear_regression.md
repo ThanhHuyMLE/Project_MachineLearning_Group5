@@ -168,7 +168,9 @@ Pipeline chuẩn hóa `X` trước khi fit (xem mục 2); đây là điều ki�
 
 MSE, RMSE, MAE, R2, MAPE tính bằng `regression_metrics` trong
 `src/house_price/evaluation.py`, trên cùng tập test với 3 mô hình
-kia. Không chọn siêu tham số dựa trên điểm test.
+kia; cả 5 chỉ số đều có trong bảng so sánh do `compare_models` xuất
+ra (`outputs/metrics.csv` có đủ cột MSE, RMSE, MAE, R2, MAPE). Không
+chọn siêu tham số dựa trên điểm test.
 
 ## 10. Kết quả thực nghiệm
 

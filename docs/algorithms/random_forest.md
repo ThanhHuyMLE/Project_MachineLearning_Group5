@@ -151,11 +151,13 @@ Xem [king-county-dataset.md](../king-county-dataset.md).
 
 MSE, RMSE, MAE, R2, MAPE tính bằng `regression_metrics` trong
 `src/house_price/evaluation.py`, trên cùng tập test với 3 mô hình
-kia. Không chọn siêu tham số dựa trên điểm test.
+kia; cả 5 chỉ số đều có trong bảng so sánh do `compare_models` xuất
+ra (`outputs/metrics.csv` có đủ cột MSE, RMSE, MAE, R2, MAPE). Không
+chọn siêu tham số dựa trên điểm test.
 
 ## 10. Kết quả thực nghiệm
 
-Kết quả đo thật ngày 17/11/2026 bằng lệnh `PYTHONPATH=src python -m house_price.train_evaluate --output-dir outputs` (tổng thời gian cả 4 mô hình 294,13 giây); môi trường: laptop Key, Windows 10 (bản dựng 10.0.19045.6466), Python 3.13.3, venv `venv-ml-win`, numpy 2.5.4, pandas 3.1.1, scikit-learn 1.9.1, matplotlib 3.11.2, seaborn 0.13.2.
+Kết quả đo thật ngày 17/11/2026 bằng lệnh `PYTHONPATH=src python -m house_price.train_evaluate --evaluation-split test --output-dir outputs` (tổng thời gian cả 4 mô hình 294,13 giây); môi trường: laptop Key, Windows 10 (bản dựng 10.0.19045.6466), Python 3.13.3, venv `venv-ml-win`, numpy 2.5.4, pandas 3.1.1, scikit-learn 1.9.1, matplotlib 3.11.2, seaborn 0.13.2.
 Bảng benchmark chính thức của Stage 04 (pipeline chuẩn 88 đặc trưng,
 cùng tập test 3.241 dòng, `n_estimators=100`, `max_depth=None`,
 `max_features="sqrt"`, `random_state=42`). Xem
@@ -168,6 +170,7 @@ cùng tập test 3.241 dòng, `n_estimators=100`, `max_depth=None`,
 | RMSE | 139.946,16 |
 | MAE | 77.253,52 |
 | R2 | 0,8638 |
+| MAPE | 14,6857% |
 
 Con số cũ R2 0,8802 của Random Forest đo trên 19 đặc trưng thô chưa
 chuẩn hóa (thí nghiệm trong notebook) KHÔNG thuộc bảng này; xem mục
@@ -175,7 +178,18 @@ chuẩn hóa (thí nghiệm trong notebook) KHÔNG thuộc bảng này; xem mụ
 [progress_results.md](../progress_results.md) và không so sánh trực
 tiếp với số trên pipeline 88 đặc trưng.
 
-Căn cứ chọn `max_features="sqrt"` trên validation (không dùng test): với 10 cây, `"sqrt"` đạt R2 0,8363 trên validation (fit 29,56 giây), còn `max_features=None` đạt R2 0,8720 nhưng fit 276,71 giây, ngoại suy 100 cây khoảng 46 phút nên loại dù R2 cao hơn.
+Căn cứ chọn `max_features="sqrt"` trên validation (không dùng test),
+đã xác nhận bằng thí nghiệm có kiểm soát
+`scripts/compare_validation.py` (một lần `prepare_data`, seed 42, 88
+cột; kết quả `outputs/validation_comparison.csv`, log
+`D:\agent-work\qa\validation-comparison.log`): với 10 cây, `"sqrt"`
+đạt R2 0,8363 trên validation (fit 12,80 giây), còn
+`max_features=None` đạt R2 0,8720 nhưng fit 108,62 giây, ngoại suy
+tuyến tính 100 cây khoảng 18 phút nên loại dù R2 cao hơn. Giới hạn
+`max_depth=8` cho rừng (`sqrt`, 10 cây) làm R2 validation rơi xuống
+0,7839 (fit 1,38 giây) nên cũng loại. Thời gian fit tuyệt đối phụ
+thuộc phần cứng và tải máy tại thời điểm đo nên chỉ thứ tự tương đối
+giữa các cấu hình mới là bằng chứng.
 
 Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên các số trên là đo thật của lần chạy ngày 17/11/2026 nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
 

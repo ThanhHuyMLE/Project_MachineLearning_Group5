@@ -139,7 +139,7 @@ def test_train_and_evaluate_returns_all_four_models_on_synthetic_data(tmp_path):
         "y_test": y[65:],
     }
 
-    table, predictions = train_and_evaluate(data, tmp_path)
+    table, predictions = train_and_evaluate(data, tmp_path, evaluation_split="test")
 
     assert len(table) == 4
     assert set(table["model"]) == set(MODEL_NAMES)

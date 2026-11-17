@@ -38,10 +38,34 @@ def test_compare_models_sorts_by_mse_ascending():
         }
     )
     assert list(table["model"]) == ["Linear Regression", "MLP Regression"]
-    assert list(table.columns) == ["model", "mse", "rmse", "mae", "r2"]
+    assert list(table.columns) == ["model", "mse", "rmse", "mae", "r2", "mape"]
 
 
 def test_r2_can_be_negative_for_bad_predictions():
     y_true = np.array([1.0, 2.0, 3.0])
     y_pred = np.array([10.0, 10.0, 10.0])
     assert regression_metrics(y_true, y_pred)["r2"] < 0
+
+
+def test_compare_models_keeps_mape_from_regression_metrics():
+    table = compare_models(
+        {
+            "MLP Regression": {"mse": 9.0, "rmse": 3.0, "mae": 2.0, "r2": 0.5, "mape": 12.5},
+            "Linear Regression": {"mse": 4.0, "rmse": 2.0, "mae": 1.0, "r2": 0.8, "mape": 7.5},
+        }
+    )
+    assert list(table["model"]) == ["Linear Regression", "MLP Regression"]
+    assert list(table["mape"]) == [7.5, 12.5]
+
+
+def test_compare_models_tolerates_none_mape():
+    """MAPE None (có giá trị thật bằng 0) không được làm crash sort/hiển thị."""
+    table = compare_models(
+        {
+            "MLP Regression": {"mse": 9.0, "rmse": 3.0, "mae": 2.0, "r2": 0.5, "mape": None},
+            "Linear Regression": {"mse": 4.0, "rmse": 2.0, "mae": 1.0, "r2": 0.8, "mape": 7.5},
+        }
+    )
+    assert list(table["model"]) == ["Linear Regression", "MLP Regression"]
+    assert table["mape"].isna().sum() == 1
+    assert "mape" in table.to_string(index=False)

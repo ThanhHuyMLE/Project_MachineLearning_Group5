@@ -310,7 +310,7 @@ Stage 03, xem [progress_results.md](../progress_results.md):
 | Test RMSE | 153.880,55 USD |
 | Test MAE | 90.391,93 USD |
 | Test R² | 0,8354 |
-| Test MAPE | 18,06% |
+| Test MAPE | 18,06% (18,0595% trong `outputs/metrics.csv`) |
 
 R² = 0,8354 không có nghĩa là dự đoán đúng 83,54%; đó là chỉ số giải
 thích biến thiên theo định nghĩa R². Số liệu có thể đổi khi source,

@@ -56,16 +56,21 @@ Chi tiết: [docs/detail_plan.md](docs/detail_plan.md).
 
 ## 4. Kết quả chính thức (Stage 04)
 
-Kết quả benchmark chính thức trên tập test (3.241 dòng, pipeline chuẩn 88 đặc trưng, cùng một lần chạy pipeline ngày 17/11/2026, tổng thời gian 294,13 giây):
+Kết quả benchmark chính thức trên tập test (3.241 dòng, pipeline chuẩn 88 đặc trưng, cùng một lần chạy pipeline ngày 17/11/2026 với `--evaluation-split test`, tổng thời gian 294,13 giây):
 
 | Mô hình | Thời gian fit | MSE | RMSE (USD) | MAE (USD) | R2 | MAPE |
 |---|---:|---:|---:|---:|---:|---:|
-| Random Forest Regression | 251,47 giây | 19.584.927.856,05 | 139.946,16 | 77.253,52 | 0,8638 | không đo |
-| MLP Regression | 26,18 giây | 23.679.224.804,72 | 153.880,55 | 90.391,93 | 0,8354 | không đo |
-| Linear Regression | 4,77 giây | 27.053.237.258,13 | 164.478,68 | 99.082,41 | 0,8119 | không đo |
-| Decision Tree Regression | 2,15 giây | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 | không đo |
+| Random Forest Regression | 251,47 giây | 19.584.927.856,05 | 139.946,16 | 77.253,52 | 0,8638 | 14,6857% |
+| MLP Regression | 26,18 giây | 23.679.224.804,72 | 153.880,55 | 90.391,93 | 0,8354 | 18,0595% |
+| Linear Regression | 4,77 giây | 27.053.237.258,13 | 164.478,68 | 99.082,41 | 0,8119 | 20,2726% |
+| Decision Tree Regression | 2,15 giây | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 | 18,2854% |
 
-MAPE ghi "không đo" vì không có trong `outputs/metrics.csv` của lần chạy này.
+MAPE đo trong lần chạy lại ngày 17/11/2026 với cùng cấu hình và cùng
+seed (MSE/RMSE/MAE/R2 giống hệt lần chạy gốc, lệch 0); xem
+[docs/progress_results.md](docs/progress_results.md). Chạy mặc định
+trên validation (`--evaluation-split val`) ghi
+`outputs/metrics_val.csv` (RF R2 0,8617, MLP 0,8310, Linear 0,8091,
+Decision Tree 0,7198).
 
 Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên không còn nguyên vẹn thống kê; các số trên là đo thật của lần chạy này nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
 
@@ -142,16 +147,26 @@ python -m house_price.train_evaluate
 ```
 
 Lệnh này chạy trọn pipeline: nạp dữ liệu, chia train/validation/test,
-huấn luyện 4 mô hình, đánh giá và in bảng so sánh MSE, RMSE, MAE, R2.
-Kết quả lưu vào `outputs/` (`metrics.csv`, `predictions.csv`, biểu
-đồ), tham số MLP lưu vào `outputs/mlp_parameters.json`,
-tham số Linear Regression lưu vào
+huấn luyện 4 mô hình, đánh giá mặc định trên validation
+(`--evaluation-split val`) và in bảng so sánh MSE, RMSE, MAE, R2,
+MAPE. Kết quả lưu vào `outputs/` (`metrics_val.csv`,
+`predictions_val.csv`, biểu đồ `*_val.png`), tham số MLP lưu vào
+`outputs/mlp_parameters.json`, tham số Linear Regression lưu vào
 `outputs/linear_regression_parameters.json`.
+
+Đánh giá cuối trên test (chỉ chạy một lần sau khi đã chốt cấu hình):
+
+```bash
+python -m house_price.train_evaluate --evaluation-split test
+```
+
+Lệnh này ghi `outputs/metrics.csv`, `predictions.csv` và biểu đồ
+không hậu tố `_val`.
 
 Tùy chọn đường dẫn dữ liệu và thư mục đầu ra:
 
 ```bash
-python -m house_price.train_evaluate --data data/kc_house_data_NaN/data_raw/kc_house_data_NaN.csv --output-dir outputs
+python -m house_price.train_evaluate --data data/kc_house_data_NaN/data_raw/kc_house_data_NaN.csv --output-dir outputs --evaluation-split test
 ```
 
 Lưu ý: huấn luyện rừng 100 cây CART viết tay có thể mất nhiều phút;
@@ -228,7 +243,7 @@ Mã giả tổng hợp: [docs/pseudocode.md](docs/pseudocode.md).
   trong `src/house_price/evaluation.py` trên cùng tập test cho cả
   4 mô hình. MAPE trả `None` khi có giá trị thật bằng 0.
 - So sánh: `compare_models` sắp bảng theo MSE tăng dần, các cột
-  model, mse, rmse, mae, r2.
+  model, mse, rmse, mae, r2, mape.
 - Không chọn mô hình hay chỉnh siêu tham số dựa trên điểm test.
 - R2 = 0,8354 không có nghĩa là dự đoán đúng 83,54%; đó là chỉ số
   giải thích biến thiên theo định nghĩa R2.
@@ -237,7 +252,11 @@ Mã giả tổng hợp: [docs/pseudocode.md](docs/pseudocode.md).
 
 Sau khi chạy pipeline, thư mục `outputs/` chứa:
 
-- `metrics.csv`: bảng MSE, RMSE, MAE, R2, MAPE của 4 mô hình.
+- `metrics.csv`: bảng MSE, RMSE, MAE, R2, MAPE của 4 mô hình trên test
+  (chạy với `--evaluation-split test`).
+- `metrics_val.csv`, `predictions_val.csv`: kết quả đánh giá trên
+  validation khi chạy mặc định (`--evaluation-split val`); biểu đồ
+  so sánh và actual-vs-predicted tương ứng có hậu tố `_val`.
 - `predictions.csv`: giá thật và giá dự đoán của từng mô hình trên test.
 - `mlp_parameters.json`: cấu hình, loss history, weights và biases
   của MLP.

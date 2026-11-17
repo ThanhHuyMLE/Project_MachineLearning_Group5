@@ -176,13 +176,16 @@ so sánh công bằng với 3 mô hình kia.
 
 MSE, RMSE, MAE, R2, MAPE tính bằng `regression_metrics` trong
 `src/house_price/evaluation.py`, trên cùng tập test với 3 mô hình
-kia. Không chọn siêu tham số dựa trên điểm test.
+kia; cả 5 chỉ số đều có trong bảng so sánh do `compare_models` xuất
+ra (`outputs/metrics.csv` có đủ cột MSE, RMSE, MAE, R2, MAPE). Không
+chọn siêu tham số dựa trên điểm test.
 
 ## 10. Kết quả thực nghiệm
 
 Kết quả thăm dò (chưa phải bảng benchmark chính thức của Stage 04;
 bảng chính thức xem [progress_results.md](../progress_results.md)
-sau khi benchmark chạy xong):
+sau khi benchmark chạy xong). Bảng dưới đây là số TRÊN TEST, chỉ
+dùng để minh họa overfit, KHÔNG phải căn cứ chọn `max_depth`:
 
 | Cấu hình | Thời gian fit | R2 trên test |
 |---|---:|---:|
@@ -191,8 +194,11 @@ sau khi benchmark chạy xong):
 
 Hai dòng trên cho thấy cây không giới hạn độ sâu vừa chậm hơn nhiều
 vừa tệ hơn trên test: cây học thuộc cả nhiễu trong train (overfit).
-Đây là lý do `max_depth` phải được chọn trên validation, không để
-mặc định không giới hạn khi báo cáo kết quả cuối cùng.
+Căn cứ chọn `max_depth=8` là số trên validation đã xác nhận bằng
+thí nghiệm có kiểm soát `scripts/compare_validation.py` (một lần
+`prepare_data`, seed 42, 88 cột; kết quả
+`outputs/validation_comparison.csv`): `max_depth=8` đạt R2 0,7198
+(fit 0,63 giây), không giới hạn độ sâu đạt R2 0,6926 (fit 16,33 giây).
 
 ## 11. Trực quan hóa và demo
 

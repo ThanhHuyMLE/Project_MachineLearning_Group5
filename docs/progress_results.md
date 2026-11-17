@@ -53,9 +53,17 @@ Chỗ nào chưa có số thật thì để lại ghi chú chờ điền số v�
 
 ### Căn cứ chọn siêu tham số (trên validation, không dùng test)
 
-- Decision Tree `max_depth=8` đạt R2 0,7198 trên validation (fit 1,81 giây), tốt hơn không giới hạn độ sâu (R2 0,6926, fit 48,31 giây).
-- Random Forest `max_features="sqrt"` với 10 cây đạt R2 0,8363 trên validation (fit 29,56 giây); `max_features=None` đạt R2 0,8720 nhưng fit 276,71 giây với 10 cây, ngoại suy 100 cây khoảng 46 phút nên loại dù R2 cao hơn.
-- Linear Regression đạt R2 0,8091 trên validation.
+Số validation dưới đây đã được xác nhận lại bằng thí nghiệm có kiểm
+soát `scripts/compare_validation.py` (một lần `prepare_data`, seed 42,
+88 cột; kết quả `outputs/validation_comparison.csv`, log
+`D:\agent-work\qa\validation-comparison.log`). Số R2 khớp 4 chữ số
+thập phân với số đã ghi trong tài liệu này. Thời gian fit tuyệt đối
+phụ thuộc phần cứng và tải máy tại thời điểm đo nên chỉ thứ tự tương
+đối giữa các cấu hình mới là bằng chứng, không phải số giây tuyệt đối.
+
+- Decision Tree `max_depth=8` đạt R2 0,7198 trên validation (fit 0,63 giây), tốt hơn không giới hạn độ sâu (R2 0,6926, fit 16,33 giây, chậm hơn khoảng 26 lần).
+- Random Forest `max_features="sqrt"` với 10 cây đạt R2 0,8363 trên validation (fit 12,80 giây); `max_features=None` đạt R2 0,8720 nhưng fit 108,62 giây với 10 cây, ngoại suy tuyến tính 100 cây khoảng 18 phút nên loại dù R2 cao hơn. Giới hạn `max_depth=8` cho rừng (`sqrt`, 10 cây) làm R2 validation rơi xuống 0,7839 (fit 1,38 giây) nên cũng loại.
+- Linear Regression đạt R2 0,8091 trên validation (fit 1,96 giây).
 
 ## Architecture Setup Milestone - Kiến trúc, tài liệu, khung code (ngày 09/11/2026)
 
@@ -101,32 +109,59 @@ tròn đầu đến cuối, KHÔNG phải kết quả cuối cùng của bài t�
 Số R2 0,697 của Architecture Setup Milestone đo trên pipeline cũ (18 đặc trưng, chia ngẫu
 nhiên, `zipcode` dạng số) và đã lỗi thời, không so sánh với số trên.
 
-## Stage 02 và Stage 03 - Cài đặt MLP NumPy và thực nghiệm đánh giá
+## Stage 02: MLP Architecture & Implementation
 
 - Cài đặt thủ công `MLPRegressorModel` bằng NumPy trong `src/house_price/models/mlp.py` (không dùng thư viện ML/DL):
   - Kiến trúc: `Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear)`, khởi tạo trọng số He initialization.
   - Huấn luyện: Mini-batch Adam (`learning_rate=0.001`, `beta1=0.9`, `beta2=0.999`, `epsilon=1e-8`, `epochs=100`, `batch_size=32`, `random_state=42`), hàm mất mát MSE, theo dõi `loss` và `val_loss` sau mỗi epoch và lưu tham số tại `outputs/mlp_parameters.json`.
-- Chạy notebook `notebooks/practice_04_mlp_regression.ipynb` (14 bước) và ghi kết quả chuẩn trên pipeline 88 đặc trưng (18 đặc trưng số đã `StandardScaler` + 70 cột one-hot `zipcode`) ra `metrics.csv`.
 - Gradient check của MLP: sai số tương đối tối đa khoảng 1,7e-08
   (< 1e-5), xem `tests/test_mlp_gradient.py`.
 
-## Stage 04 - Model Benchmarking & Analysis
+## Stage 03: Model Training & Evaluation
+
+- Chạy notebook `notebooks/practice_04_mlp_regression.ipynb` (14 bước) và ghi kết quả chuẩn trên pipeline 88 đặc trưng (18 đặc trưng số đã `StandardScaler` + 70 cột one-hot `zipcode`) ra `metrics.csv`.
+
+## Stage 04: Model Benchmarking & Analysis
 
 ### Bảng benchmark chính (pipeline chuẩn 88 đặc trưng, tập test 3.241 dòng)
 
-Chạy ngày 17/11/2026 bằng lệnh `PYTHONPATH=src python -m house_price.train_evaluate --output-dir outputs`, tổng thời gian 294,13 giây; train 15.129 dòng, validation 3.243 dòng, test 3.241 dòng, 88 đặc trưng, seed 42.
+Chạy ngày 17/11/2026 bằng lệnh `PYTHONPATH=src python -m house_price.train_evaluate --evaluation-split test --output-dir outputs`, tổng thời gian 294,13 giây; train 15.129 dòng, validation 3.243 dòng, test 3.241 dòng, 88 đặc trưng, seed 42.
 Bảng dưới đây là kết quả chính thức của Stage 04: cả 4 mô hình chạy
 trên cùng pipeline 88 đặc trưng, cùng tập test, cùng bộ chỉ số
-(MSE, RMSE, MAE, R2, MAPE) tính bằng `regression_metrics`. MAPE
-không đo trong lần chạy này (không có cột MAPE trong
-`outputs/metrics.csv`) nên ghi "không đo", không ước lượng.
+(MSE, RMSE, MAE, R2, MAPE) tính bằng `regression_metrics` và xuất
+đầy đủ qua `compare_models`. Cột MAPE có trong `outputs/metrics.csv`
+sau lần chạy lại ngày 17/11/2026 với cùng cấu hình và cùng seed
+(log `D:\agent-work\qa\benchmark-mape-rerun.log`, exit 0); lần chạy
+lại này cho MSE/RMSE/MAE/R2 giống hệt lần chạy gốc (lệch 0) nên chỉ
+bổ sung MAPE, không đổi các số còn lại.
 
 | Mô hình | Thời gian fit | MSE | RMSE (USD) | MAE (USD) | R2 | MAPE |
 |---|---:|---:|---:|---:|---:|---:|
-| MLP Regression | 26,18 giây | 23.679.224.804,72 | 153.880,55 | 90.391,93 | 0,8354 | không đo |
-| Linear Regression | 4,77 giây | 27.053.237.258,13 | 164.478,68 | 99.082,41 | 0,8119 | không đo |
-| Decision Tree Regression | 2,15 giây | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 | không đo |
-| Random Forest Regression | 251,47 giây | 19.584.927.856,05 | 139.946,16 | 77.253,52 | 0,8638 | không đo |
+| MLP Regression | 26,18 giây | 23.679.224.804,72 | 153.880,55 | 90.391,93 | 0,8354 | 18,0595% |
+| Linear Regression | 4,77 giây | 27.053.237.258,13 | 164.478,68 | 99.082,41 | 0,8119 | 20,2726% |
+| Decision Tree Regression | 2,15 giây | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 | 18,2854% |
+| Random Forest Regression | 251,47 giây | 19.584.927.856,05 | 139.946,16 | 77.253,52 | 0,8638 | 14,6857% |
+
+### Kết quả chạy trên validation (mặc định của CLI)
+
+`train_evaluate` mặc định đánh giá trên validation
+(`--evaluation-split val`; muốn đánh giá cuối trên test phải chọn
+tường minh `--evaluation-split test`). Lần chạy với
+`--evaluation-split val` ngày 17/11/2026 (log
+`D:\agent-work\qa\benchmark-val-run.log`, exit 0) ghi
+`outputs/metrics_val.csv`:
+
+| Mô hình | R2 trên validation | MAPE trên validation |
+|---|---:|---:|
+| Random Forest Regression | 0,8617 | 13,6527% |
+| MLP Regression | 0,8310 | 17,1460% |
+| Linear Regression | 0,8091 | 18,8608% |
+| Decision Tree Regression | 0,7198 | 17,5481% |
+
+R2 validation của Linear Regression (0,8091) và Decision Tree
+`max_depth=8` (0,7198) khớp với số trong thí nghiệm
+`scripts/compare_validation.py`, đúng như kỳ vọng vì cùng tập
+validation, cùng seed 42.
 
 Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên không còn nguyên vẹn thống kê; các số trong bảng trên là đo thật của lần chạy ngày 17/11/2026 nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
 
@@ -153,9 +188,12 @@ khu vực `zipcode`.
 - `max_depth=8`: fit 1,12 giây, R2 trên test 0,7314.
 - Không giới hạn độ sâu: fit 32,29 giây, R2 trên test 0,6880
   (overfit: chậm hơn nhiều mà tệ hơn trên test).
-- Hai số này chỉ để chọn `max_depth` trên validation; cấu hình cuối
-  cùng dùng trong bảng benchmark chính đã ghi ở mục Siêu tham số
-  (`max_depth=8`).
+- Hai số R2 trên (0,7314 và 0,6880) là số TRÊN TEST, chỉ dùng để minh
+  họa overfit, KHÔNG phải căn cứ chọn `max_depth`. Căn cứ chọn là số
+  trên validation đã xác nhận (xem mục "Căn cứ chọn siêu tham số":
+  `max_depth=8` đạt R2 0,7198, không giới hạn độ sâu đạt R2 0,6926;
+  đo bằng `scripts/compare_validation.py`,
+  `outputs/validation_comparison.csv`).
 
 ## Supplementary Experiment: Preprocessing Ablation Study
 
@@ -187,8 +225,12 @@ Nhận xét: khi huấn luyện trên 19 cột thô chưa qua `StandardScaler`,
 sự chênh lệch thang đo lớn giữa các biến (`sqft_lot` lên tới
 `1.651.359` trong khi các cờ nhị phân chỉ nhận `0/1`) khiến gradient
 của MLP hội tụ kém (R2 = 0,6024, RMSE = `239.124,52 USD`). Khi áp
-dụng `StandardScaler` và one-hot `zipcode`, R2 tăng từ `0,6024` lên
-`0,8354`. `Random Forest` đạt kết quả tốt nhất trên dữ liệu dạng
+dụng `StandardScaler` và one-hot `zipcode`, MLP trên pipeline 88 đặc
+trưng đạt R2 = 0,8354. Hai số 0,6024 và 0,8354 thuộc hai pipeline
+khác nhau (19 cột thô chưa chuẩn hóa so với 88 cột đã chuẩn hóa)
+nên không so sánh trực tiếp như một mức tăng; chỉ ghi nhận xu hướng
+trong thí nghiệm ablation lịch sử này là chuẩn hóa giúp MLP hội tụ
+tốt hơn hẳn. `Random Forest` đạt kết quả tốt nhất trên dữ liệu dạng
 bảng (R2 = 0,8802, MAE = `72.558,23 USD`) do các thuật toán cây
 quyết định không bị ảnh hưởng bởi thang đo của đặc trưng.
 
@@ -221,5 +263,8 @@ Vì vậy:
   (19 cột thô), thang đo các cột lệch nhau lớn (`sqft_lot` lên tới
   `1.651.359` so với biến nhị phân `0/1`) làm gradient của MLP hội tụ
   kém (R2 = 0,6024, dự đoán mẫu nhà mới bị âm `-380,28 USD`). Khi đưa
-  đủ 88 đặc trưng đã chuẩn hóa, `MLP Regression` cải thiện rõ rệt lên
-  R2 = 0,8354.
+  đủ 88 đặc trưng đã chuẩn hóa, `MLP Regression` đạt R2 = 0,8354
+  trên cùng tập test. Hai số 0,6024 và 0,8354 thuộc hai pipeline khác
+  nhau nên không so sánh trực tiếp như một mức tăng; chỉ ghi nhận xu
+  hướng trong thí nghiệm ablation lịch sử này là chuẩn hóa giúp MLP
+  hội tụ tốt hơn hẳn.

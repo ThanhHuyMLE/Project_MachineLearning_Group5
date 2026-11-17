@@ -126,18 +126,24 @@ Hợp đồng riêng từng mô hình:
 ### So sánh (`model_comparison.py`)
 
 - `compare_models(results)` -> DataFrame sắp theo MSE tăng dần,
-  các cột: model, mse, rmse, mae, r2.
-- Mỗi mô hình dùng cùng tập test và cùng quy trình đánh giá.
+  các cột: model, mse, rmse, mae, r2, mape.
+- Mọi mô hình dùng cùng tập đánh giá đã chọn và cùng quy trình đánh
+  giá (mặc định validation, `--evaluation-split test` cho đánh giá
+  cuối trên test).
 
 ### Điều phối (`train_evaluate.py`)
 
 - `main(argv=None)` chạy: nạp dữ liệu -> chia tập -> build 4 mô hình ->
-  train -> predict -> đánh giá -> so sánh -> lưu `outputs/metrics.csv`,
-  `outputs/predictions.csv`, biểu đồ và `outputs/mlp_parameters.json`.
-  Nhận tham số dòng lệnh `--data` (đường dẫn CSV) và `--output-dir`.
+  train -> predict -> đánh giá -> so sánh -> lưu metric, dự đoán,
+  biểu đồ và `outputs/mlp_parameters.json`. Nhận tham số dòng lệnh
+  `--data` (đường dẫn CSV), `--output-dir` và `--evaluation-split`
+  (`val` mặc định, ghi `outputs/metrics_val.csv`,
+  `outputs/predictions_val.csv`, biểu đồ hậu tố `_val`; `test` cho
+  đánh giá cuối, ghi `outputs/metrics.csv`, `outputs/predictions.csv`,
+  biểu đồ không hậu tố).
 - `build_models(output_dir)` tạo 4 mô hình; MLP lưu tham số vào
   `output_dir/mlp_parameters.json`.
-- `train_and_evaluate(data, output_dir)` fit MLP với `X_val`/`y_val`
+- `train_and_evaluate(data, output_dir, evaluation_split="val")` fit MLP với `X_val`/`y_val`
   (nếu `prepare_data` không trả validation thì tách 15% từ train),
   3 mô hình còn lại fit trên train; vẽ `actual_vs_predicted_<slug>.png`
   cho từng mô hình, `training_history_<slug>.png` khi có loss history,

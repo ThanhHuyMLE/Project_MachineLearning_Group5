@@ -70,7 +70,10 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
 2. **Giải thích sâu:** Linear Regression bias cao (chỉ học tuyến tính)
    nhưng variance thấp. Cây không giới hạn độ sâu bias thấp nhưng
    variance cao: fit 32,29 giây, R2 test chỉ 0,6880, tệ hơn cây
-   `max_depth=8` (R2 0,7314) vì học thuộc nhiễu train. Random Forest
+   `max_depth=8` (R2 0,7314) vì học thuộc nhiễu train. (Cặp số test
+   này chỉ minh họa overfit; việc chọn `max_depth=8` dựa trên số
+   validation đã xác nhận: R2 0,7198 so với 0,6926, xem
+   `scripts/compare_validation.py`.) Random Forest
    giảm variance bằng trung bình nhiều cây mà bias hầu như không tăng.
 3. **Tham chiếu source:** `src/house_price/models/decision_tree.py`,
    `DecisionTreeRegressorModel.fit` (tham số `max_depth`,
@@ -92,6 +95,9 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    train MSE 50,8 tỷ sau 200 epoch nhưng R2 test chỉ 0,6024 là dấu
    hiệu học kém chứ không phải overfit đơn thuần; còn cây không giới
    hạn (R2 test 0,6880 < cây depth 8 là 0,7314) là overfit điển hình.
+   (Cặp số test này chỉ minh họa overfit; việc chọn `max_depth=8`
+   dựa trên số validation: R2 0,7198 so với 0,6926, xem
+   `scripts/compare_validation.py`.)
 3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
    `MLPRegressorModel.fit` (ghi `history_` gồm `loss` và `val_loss`);
    `src/house_price/visualization.py`, `plot_training_history`.
@@ -183,8 +189,7 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    MLP và Linear Regression nhạy với thang đo nên bắt buộc chuẩn hóa.
 2. **Giải thích sâu:** `sqft_lot` lên tới 1.651.359 trong khi cờ nhị
    phân chỉ 0/1: không chuẩn hóa thì gradient bị chi phối bởi đặc
-   trưng lớn, MLP hội tụ kém (R2 0,6024 trên 19 cột thô so với 0,8354
-   sau chuẩn hóa). Cây quyết định không cần chuẩn hóa vì ngưỡng chia
+   trưng lớn, MLP hội tụ kém (R2 0,6024 trên 19 cột thô so với 0,8354 trên pipeline 88 cột đã chuẩn hóa; hai số thuộc hai pipeline khác nhau nên chỉ mang tính minh họa ablation, không phải so sánh trực tiếp có kiểm soát). Cây quyết định không cần chuẩn hóa vì ngưỡng chia
    chỉ so sánh thứ tự, nhưng pipeline vẫn chuẩn hóa để dùng chung một
    tập dữ liệu cho cả 4 mô hình.
 3. **Tham chiếu source:** `src/house_price/preprocessing.py`,
@@ -657,7 +662,10 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
 
 1. **Đáp ngắn:** Vì overfit: cây không giới hạn học thuộc cả nhiễu
    trong train nên dự đoán test tệ hơn (R2 0,6880 so với 0,7314) mà
-   còn chậm hơn nhiều (32,29 giây so với 1,12 giây).
+   còn chậm hơn nhiều (32,29 giây so với 1,12 giây). Cặp số test
+   này chỉ minh họa overfit; việc chọn `max_depth=8` dựa trên số
+   validation (R2 0,7198 so với 0,6926, xem
+   `scripts/compare_validation.py`).
 2. **Giải thích sâu:** Cây càng sâu thì mỗi lá càng ít mẫu, giá trị lá
    (trung bình `y`) càng nhiễu và càng nhạy với từng dòng train cụ
    thể. Giới hạn `max_depth=8` ép cây dừng sớm, mỗi lá có đủ mẫu để
@@ -804,8 +812,9 @@ khoảng 2-4 phút, tổng khoảng 20-25 phút):
 7. **Results:** Bảng benchmark chính Stage 04 (4 mô hình, pipeline
    88 cột, test 3.241 dòng); so sánh với số Stage 03 (MLP 0,8354,
    Linear 0,8154); thí nghiệm bổ sung 19 cột thô cho thấy vai trò
-   của chuẩn hóa (MLP 0,6024 -> 0,8354); cây depth 8 thắng cây không
-   giới hạn (0,7314 so với 0,6880).
+   của chuẩn hóa (MLP 0,6024 trên 19 cột thô so với 0,8354 trên pipeline 88 cột; hai số thuộc hai pipeline khác nhau, chỉ mang tính minh họa ablation); cây depth 8 thắng cây không
+   giới hạn (0,7314 so với 0,6880; cặp số test minh họa overfit,
+   căn cứ chọn là số validation R2 0,7198 so với 0,6926).
 8. **Conclusion:** Kết luận chính (chuẩn hóa quyết định hiệu năng MLP;
    MLP vượt baseline tuyến tính; rừng là đối chiếu mạnh nhất trên
    dữ liệu bảng); hạn chế (chưa early stopping/Dropout, chưa thử
