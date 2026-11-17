@@ -40,9 +40,7 @@ def test_plot_actual_vs_predicted_returns_figure(tmp_path):
     save_file = tmp_path / "actual_vs_pred.png"
 
     try:
-        fig = visualization.plot_actual_vs_predicted(
-            y_true, y_pred, save_path=save_file
-        )
+        fig = visualization.plot_actual_vs_predicted(y_true, y_pred, save_path=save_file)
     except TypeError:
         fig = visualization.plot_actual_vs_predicted(y_true, y_pred)
 
