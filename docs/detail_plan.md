@@ -16,7 +16,7 @@
 | 12 | Viết docs | Các file có liên kết, mỗi file cố gắng dưới 200 dòng |
 | 13 | Kiểm tra | `pytest` pass, `ruff check` sạch, pipeline chạy tròn đầu đến cuối |
 
-Trạng thái: các bước 1-8 đã xong (cả 4 mô hình đều được cài đặt bằng thư viện NumPy, xem [adr/007-mo-hinh-code-tay.md](adr/007-mo-hinh-code-tay.md));
+Trạng thái: các bước 1-8 đã xong (cả 4 mô hình đều được cài đặt bằng thư viện NumPy, xem [adr/007-mo-hinh-numpy.md](adr/007-mo-hinh-numpy.md));
 bước 9-10 đang làm ở Stage 04 (bảng benchmark chính chưa có số liệu,
 xem [progress_results.md](progress_results.md)); bước 11-13 làm sau
 khi benchmark xong.

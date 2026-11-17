@@ -72,7 +72,7 @@ validation, test và nhà mới. Xem
 ### Mô hình (`models/`)
 
 Cả 4 mô hình đều được cài đặt bằng thư viện NumPy, không dùng estimator có sẵn của
-scikit-learn (xem `adr/007-mo-hinh-code-tay.md`). scikit-learn chỉ dùng
+scikit-learn (xem `adr/007-mo-hinh-numpy.md`). scikit-learn chỉ dùng
 cho tiền xử lý và metrics. Mỗi class tuân theo cùng mẫu:
 
 ```python
@@ -158,5 +158,5 @@ Hợp đồng riêng từng mô hình:
   `src/`), chỉ sắp xếp lại bên trong `src/` và bổ sung thư mục thiếu.
 - **Notebook chỉ demo:** logic dùng lại nằm trong `src/`, notebook gọi
   module đó để demo và thí nghiệm, không viết class riêng trong notebook.
-- **Mọi mô hình được cài đặt bằng thư viện NumPy** (xem `adr/007-mo-hinh-code-tay.md`,
+- **Mọi mô hình được cài đặt bằng thư viện NumPy** (xem `adr/007-mo-hinh-numpy.md`,
   thay thế ADR-004).

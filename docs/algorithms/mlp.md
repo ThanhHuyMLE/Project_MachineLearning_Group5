@@ -9,7 +9,7 @@ của căn nhà và giá bán, là mô hình chính của Bài tập thực hàn
 Trong dự án, MLP được cài đặt thủ công bằng NumPy: phép tính forward,
 gradient backpropagation và cập nhật Adam được viết trong class, không
 dùng `sklearn.MLPRegressor`, TensorFlow hoặc Keras để huấn luyện.
-Xem [adr/007-mo-hinh-code-tay.md](../adr/007-mo-hinh-code-tay.md).
+Xem [adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md).
 
 Kiến trúc mặc định:
 

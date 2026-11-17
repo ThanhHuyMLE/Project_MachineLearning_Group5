@@ -1,6 +1,6 @@
 # ADR-004: MLP được cài đặt bằng thư viện NumPy (thay thế quyết định sklearn tạm thời)
 
-- Trạng thái: Đã thay thế bởi [ADR-007](007-mo-hinh-code-tay.md)
+- Trạng thái: Đã thay thế bởi [ADR-007](007-mo-hinh-numpy.md)
   (10/11/2026). Quyết định gốc dưới đây chỉ giữ lại vì lý do lịch sử;
   không dùng làm căn cứ cho code hiện tại.
 - Trạng thái gốc: Đã chấp nhận tạm thời (Architecture Setup Milestone,

@@ -141,7 +141,7 @@ Cấu trúc cây lưu trong `tree_` (dict lồng nhau): nút lá có
 
 File: `src/house_price/models/decision_tree.py`,
 class `DecisionTreeRegressorModel`. Đây là cây CART được cài đặt bằng thư viện NumPy; không dùng `sklearn.tree.DecisionTreeRegressor`. Xem
-[adr/007-mo-hinh-code-tay.md](../adr/007-mo-hinh-code-tay.md).
+[adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md).
 
 | Phương thức | Công việc |
 |---|---|

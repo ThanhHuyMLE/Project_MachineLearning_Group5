@@ -5,7 +5,7 @@ Multilayer Perceptron (MLP) và đối chiếu với 3 mô hình truyền thốn
 Linear Regression, Decision Tree Regression, Random Forest Regression.
 Cả 4 mô hình đều cài đặt thủ công bằng NumPy, không dùng class mô
 hình của scikit-learn, TensorFlow hay Keras (xem
-[docs/adr/007-mo-hinh-code-tay.md](docs/adr/007-mo-hinh-code-tay.md)).
+[docs/adr/007-mo-hinh-numpy.md](docs/adr/007-mo-hinh-numpy.md)).
 
 > Trạng thái: Stage 01 đến Stage 04 đã xong. Bảng benchmark chính
 > thức của 4 mô hình trên pipeline chuẩn 88 đặc trưng (chạy ngày
@@ -274,7 +274,7 @@ Sau khi chạy pipeline, thư mục `outputs/` chứa:
   Tên biến, hàm, class, module viết bằng tiếng Anh.
 - Không ghi kết quả chưa chạy như kết quả đã kiểm chứng.
 - Mọi mô hình được cài đặt bằng thư viện NumPy; sklearn chỉ dùng cho tiền xử lý
-  và metrics (xem [docs/adr/007-mo-hinh-code-tay.md](docs/adr/007-mo-hinh-code-tay.md)).
+  và metrics (xem [docs/adr/007-mo-hinh-numpy.md](docs/adr/007-mo-hinh-numpy.md)).
 
 ## 16. Tài liệu tham khảo
 

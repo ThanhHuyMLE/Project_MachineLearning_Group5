@@ -127,7 +127,7 @@ File: `src/house_price/models/linear_regression.py`,
 class `LinearRegressorModel`. Đây là cài đặt bằng thư viện NumPy;
 không dùng `sklearn.linear_model.LinearRegression` hay bất kỳ
 estimator có sẵn nào. NumPy chỉ làm phép tính mảng. Xem
-[adr/007-mo-hinh-code-tay.md](../adr/007-mo-hinh-code-tay.md).
+[adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md).
 
 | Phương thức | Công việc |
 |---|---|

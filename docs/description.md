@@ -30,7 +30,7 @@ Dữ liệu: King County House Sales, 21.613 giao dịch từ tháng 5/2014
 
 - Chỉ làm bài toán Hồi quy giá nhà King County, theo đề Bài tập thực hành 4.
 - Cả 4 mô hình đều được cài đặt bằng thư viện NumPy theo quy tắc
-  của nhóm (xem [adr/007-mo-hinh-code-tay.md](adr/007-mo-hinh-code-tay.md)):
+  của nhóm (xem [adr/007-mo-hinh-numpy.md](adr/007-mo-hinh-numpy.md)):
   không dùng class mô hình của scikit-learn, không dùng TensorFlow/Keras.
   NumPy chỉ được dùng cho phép tính mảng; không dùng thư viện để triển
   khai MLP, Backpropagation, optimizer, cây CART hay bagging.

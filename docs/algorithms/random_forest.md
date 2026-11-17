@@ -112,7 +112,7 @@ class `RandomForestRegressorModel`, dùng lại
 `DecisionTreeRegressorModel` trong
 `src/house_price/models/decision_tree.py`. Rừng và từng cây đều viết
 tay bằng NumPy; không dùng `sklearn.ensemble.RandomForestRegressor`.
-Xem [adr/007-mo-hinh-code-tay.md](../adr/007-mo-hinh-code-tay.md).
+Xem [adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md).
 
 | Phương thức | Công việc |
 |---|---|

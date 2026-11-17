@@ -2,7 +2,7 @@
 
 Không dùng bất kỳ estimator có sẵn nào của thư viện học máy: hệ số
 được học bằng batch gradient descent viết tay (xem
-docs/adr/007-mo-hinh-code-tay.md). NumPy chỉ làm phép tính mảng.
+docs/adr/007-mo-hinh-numpy.md). NumPy chỉ làm phép tính mảng.
 """
 
 from __future__ import annotations
