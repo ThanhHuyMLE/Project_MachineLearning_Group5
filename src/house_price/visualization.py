@@ -31,6 +31,7 @@ def plot_actual_vs_predicted(
         fig.savefig(save_path, dpi=150)
     return fig
 
+
 def plot_training_history(history, save_path: str | Path | None = None):
     """Vẽ đường loss train/validation theo epoch để phân tích overfitting."""
     train_loss = np.asarray(history["loss"], dtype=float)
@@ -44,11 +45,20 @@ def plot_training_history(history, save_path: str | Path | None = None):
     ax1.plot(epochs, train_loss, label="Train Loss (MSE)", color="#1f77b4", linewidth=2)
     if has_val:
         val_loss = np.asarray(history["val_loss"], dtype=float)
-        ax1.plot(epochs, val_loss, label="Validation Loss (MSE)", color="#ff7f0e", linewidth=2, linestyle="--")
+        ax1.plot(
+            epochs,
+            val_loss,
+            label="Validation Loss (MSE)",
+            color="#ff7f0e",
+            linewidth=2,
+            linestyle="--",
+        )
 
         best_epoch = int(np.argmin(val_loss)) + 1
         best_val = float(np.min(val_loss))
-        ax1.axvline(best_epoch, color="red", linestyle=":", alpha=0.8, label=f"Best Epoch ({best_epoch})")
+        ax1.axvline(
+            best_epoch, color="red", linestyle=":", alpha=0.8, label=f"Best Epoch ({best_epoch})"
+        )
         ax1.scatter([best_epoch], [best_val], color="red", zorder=5)
 
     ax1.set_yscale("log")
@@ -61,11 +71,30 @@ def plot_training_history(history, save_path: str | Path | None = None):
     # --- Biểu đồ 2: Phóng to giai đoạn hội tụ (nửa sau số epoch) ---
     ax2 = axes[1]
     start_idx = len(epochs) // 4  # Bỏ qua 25% epoch đầu có loss quá lớn
-    ax2.plot(epochs[start_idx:], train_loss[start_idx:], label="Train Loss (MSE)", color="#1f77b4", linewidth=2)
+    ax2.plot(
+        epochs[start_idx:],
+        train_loss[start_idx:],
+        label="Train Loss (MSE)",
+        color="#1f77b4",
+        linewidth=2,
+    )
     if has_val:
-        ax2.plot(epochs[start_idx:], val_loss[start_idx:], label="Validation Loss (MSE)", color="#ff7f0e", linewidth=2, linestyle="--")
+        ax2.plot(
+            epochs[start_idx:],
+            val_loss[start_idx:],
+            label="Validation Loss (MSE)",
+            color="#ff7f0e",
+            linewidth=2,
+            linestyle="--",
+        )
         if best_epoch > start_idx:
-            ax2.axvline(best_epoch, color="red", linestyle=":", alpha=0.8, label=f"Best Epoch ({best_epoch})")
+            ax2.axvline(
+                best_epoch,
+                color="red",
+                linestyle=":",
+                alpha=0.8,
+                label=f"Best Epoch ({best_epoch})",
+            )
             ax2.scatter([best_epoch], [best_val], color="red", zorder=5)
 
     ax2.set_xlabel("Epoch")
@@ -78,6 +107,7 @@ def plot_training_history(history, save_path: str | Path | None = None):
     if save_path is not None:
         fig.savefig(save_path, dpi=150)
     return fig
+
 
 def plot_metric_comparison(
     table: pd.DataFrame, metric: str = "mse", save_path: str | Path | None = None
