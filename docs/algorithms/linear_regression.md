@@ -124,7 +124,7 @@ HÀM EXPORT_PARAMS(path, feature_names):
 ## 6. Cài đặt Python
 
 File: `src/house_price/models/linear_regression.py`,
-class `LinearRegressorModel`. Đây là cài đặt viết tay bằng NumPy;
+class `LinearRegressorModel`. Đây là cài đặt bằng thư viện NumPy;
 không dùng `sklearn.linear_model.LinearRegression` hay bất kỳ
 estimator có sẵn nào. NumPy chỉ làm phép tính mảng. Xem
 [adr/007-mo-hinh-code-tay.md](../adr/007-mo-hinh-code-tay.md).
@@ -133,7 +133,7 @@ estimator có sẵn nào. NumPy chỉ làm phép tính mảng. Xem
 |---|---|
 | `__init__(learning_rate=0.1, max_epochs=1000, tol=1e-6)` | Lưu cấu hình, chưa có hệ số |
 | `build_model()` | Reset trạng thái, chưa có hệ số |
-| `fit(X_train, y_train)` | Batch gradient descent viết tay, dừng sớm theo thay đổi tương đối của loss |
+| `fit(X_train, y_train)` | Batch gradient descent được cài đặt bằng thư viện NumPy, dừng sớm theo thay đổi tương đối của loss |
 | `predict(X)` | Trả `X beta + b`, báo lỗi nếu chưa fit |
 | `coef_`, `intercept_` | Hệ số và hệ số chặn, chỉ có sau fit |
 | `export_params(path, feature_names=None)` | Xuất tham số đã học ra JSON |

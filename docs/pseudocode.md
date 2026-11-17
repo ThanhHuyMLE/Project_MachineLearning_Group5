@@ -4,7 +4,7 @@ Quy ước: chỉ số bắt đầu từ 0. Mã giả trình bày vòng lặp t�
 code Python có thể gộp một số vòng lặp thành phép tính mảng.
 Mỗi mô hình tuân theo: INIT -> BUILD_MODEL -> FIT -> PREDICT.
 Chi tiết toán học và giải thích đầy đủ xem `docs/algorithms/`.
-Cả 4 mô hình đều viết tay bằng NumPy, không dùng estimator có sẵn
+Cả 4 mô hình đều được cài đặt bằng thư viện NumPy, không dùng estimator có sẵn
 của scikit-learn (xem `docs/adr/007-mo-hinh-code-tay.md`).
 
 ## Quy trình chung (4 mô hình)

@@ -52,7 +52,7 @@ Thời gian fit trong lần chạy ngày 17/11/2026 (tổng thời gian 294,13 g
 
 Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên không còn nguyên vẹn thống kê; các số trong bảng 4.1 là đo thật của lần chạy này nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
 
-- **Nhận xét:** Trên tập dữ liệu đã chuẩn hóa đầy đủ 88 đặc trưng, `Random Forest Regression` đạt kết quả tốt nhất (**$R^2 = 0,8638$**, RMSE `139.946,16 USD`, MAE `77.253,52 USD`). `MLP Regression` đạt **$R^2 = 0,8354$**, giảm **10.598,13 USD** ở chỉ số RMSE (-6,44%) và giảm **8.690,48 USD** ở chỉ số MAE (-8,77%) so với `Linear Regression` viết tay ($R^2 = 0,8119$). Số Linear Regression Stage 03 dùng sklearn OLS ($R^2 = 0,8154$) chỉ giữ làm lịch sử trong `docs/progress_results.md`, không dùng trong bảng này. Các tầng ẩn ReLU đã học được quan hệ phi tuyến giữa quy mô căn nhà, chất lượng xây dựng và khu vực `zipcode`.
+- **Nhận xét:** Trên tập dữ liệu đã chuẩn hóa đầy đủ 88 đặc trưng, `Random Forest Regression` đạt kết quả tốt nhất (**$R^2 = 0,8638$**, RMSE `139.946,16 USD`, MAE `77.253,52 USD`). `MLP Regression` đạt **$R^2 = 0,8354$**, giảm **10.598,13 USD** ở chỉ số RMSE (-6,44%) và giảm **8.690,48 USD** ở chỉ số MAE (-8,77%) so với `Linear Regression` được cài đặt bằng thư viện NumPy ($R^2 = 0,8119$). Số Linear Regression Stage 03 dùng sklearn OLS ($R^2 = 0,8154$) chỉ giữ làm lịch sử trong `docs/progress_results.md`, không dùng trong bảng này. Các tầng ẩn ReLU đã học được quan hệ phi tuyến giữa quy mô căn nhà, chất lượng xây dựng và khu vực `zipcode`.
 
 ### 4.2. Thí nghiệm bổ sung: đối chiếu 4 mô hình trên 19 đặc trưng thô chưa chuẩn hóa
 

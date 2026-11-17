@@ -1,25 +1,25 @@
-# ADR-007: Mọi mô hình code tay bằng NumPy, không dùng thư viện mô hình
+# ADR-007: Mọi mô hình được cài đặt bằng thư viện NumPy, không dùng thư viện mô hình có sẵn
 
 - Trạng thái: Đã chấp nhận (10/11/2026), thay thế ADR-004
-- Cập nhật: 17/11/2026, cả 4 mô hình đã code tay xong (xem mục Tiến độ)
+- Cập nhật: 17/11/2026, cả 4 mô hình đã được cài đặt xong bằng thư viện NumPy (xem mục Tiến độ)
 
 ## Bối cảnh
 
 Ngày 10/11/2026, Thanh Huy (chủ nhóm) đặt quy tắc: mọi mô hình phải
-CODE TAY để thể hiện cách tính của thuật toán, KHÔNG dùng thư viện hỗ
+được cài đặt bằng thư viện NumPy để thể hiện cách tính của thuật toán, KHÔNG dùng thư viện hỗ
 trợ cho model (không dùng class mô hình của scikit-learn, không dùng
 TensorFlow/Keras). Thư viện vẫn dùng bình thường cho phần còn lại:
 pandas/NumPy đọc dữ liệu, sklearn cho tiền xử lý (preprocessing) và
 đo chỉ số (metrics), thư viện vẽ biểu đồ.
 
 ADR-004 (09/11/2026) trước đây chọn sklearn MLPRegressor làm mặc định
-tạm thời, với lý do "chỉ viết tay nếu giảng viên yêu cầu rõ ràng". Yêu
+tạm thời, với lý do "chỉ cài đặt bằng thư viện NumPy nếu giảng viên yêu cầu rõ ràng". Yêu
 cầu đó giờ đã có, nên ADR-004 bị thay thế. `docs/description.md` từng
 ghi "dùng thư viện ML có sẵn" cũng được sửa theo quy tắc mới.
 
 ## Các lựa chọn đã xem xét
 
-1. **Code tay bằng NumPy (chọn):** tự viết công thức của từng thuật
+1. **Cài đặt bằng thư viện NumPy (chọn):** tự viết công thức của từng thuật
    toán, NumPy chỉ làm phép tính mảng (ma trận, lấy mẫu ngẫu nhiên).
    Thể hiện được cách tính khi giảng viên hỏi, tham số học được đọc
    và xuất ra được.
@@ -31,7 +31,7 @@ ghi "dùng thư viện ML có sẵn" cũng được sửa theo quy tắc mới.
 
 ## Quyết định
 
-- Mọi mô hình trong `src/house_price/models/` đều code tay bằng NumPy,
+- Mọi mô hình trong `src/house_price/models/` đều được cài đặt bằng thư viện NumPy,
   không import class mô hình của sklearn hay TensorFlow/Keras.
 - Giữ nguyên interface chung `__init__` -> `build_model` -> `fit` ->
   `predict` (xem `docs/project_architecture.md`), để pipeline và code
@@ -41,23 +41,21 @@ ghi "dùng thư viện ML có sẵn" cũng được sửa theo quy tắc mới.
   giảng viên hỏi công thức và model param.
 - sklearn chỉ còn dùng cho tiền xử lý và metrics, không dùng cho model.
 - Cụ thể từng mô hình:
-  - MLP: lan truyền tiến/ngược và Adam viết tay, khởi tạo He.
-  - Linear Regression: batch gradient descent viết tay trên ma trận
-    thiết kế mở rộng `X_aug = [1 | X]`.
-  - Decision Tree: cây CART viết tay, chia theo MSE có trọng số.
-  - Random Forest: bagging viết tay trên cây CART viết tay, trung
-    bình dự đoán các cây.
+  - MLP: lan truyền tiến/ngược và Adam được cài đặt bằng thư viện NumPy, khởi tạo He.
+  - Linear Regression: batch gradient descent được cài đặt bằng thư viện NumPy trên ma trận thiết kế mở rộng `X_aug = [1 | X]`.
+  - Decision Tree: cây CART được cài đặt bằng thư viện NumPy, chia theo MSE có trọng số.
+  - Random Forest: bagging trên cây CART, cả hai đều được cài đặt bằng thư viện NumPy, trung bình dự đoán các cây.
 
 ## Tiến độ thực hiện
 
 - **Linear Regression (xong, 10/11/2026; cập nhật 17/11/2026):**
-  `fit` học hệ số bằng batch gradient descent viết tay
+  `fit` học hệ số bằng batch gradient descent được cài đặt bằng thư viện NumPy
   (`learning_rate=0.1`, `max_epochs=1000`, `tol=1e-6` tương đối) trên
   ma trận thiết kế `X_aug = [1 | X]`, gradient
   `(2/n) X_aug^T (X_aug beta - y)`, khởi tạo beta bằng 0. Có
   `export_params` xuất trọng số và bias ra JSON. Bản nháp ADR-007
   ngày 10/11/2026 ghi `fit` giải OLS bằng `numpy.linalg.lstsq`;
-  cách đó đã được thay bằng gradient descent viết tay để thể hiện
+  cách đó đã được thay bằng gradient descent được cài đặt bằng thư viện NumPy để thể hiện
   rõ quá trình học theo từng epoch và khớp với `history_` loss.
   Nghiệm dạng đóng chỉ còn dùng trong test để đối chiếu tính đúng
   đắn, không dùng để fit.
@@ -67,7 +65,7 @@ ghi "dùng thư viện ML có sẵn" cũng được sửa theo quy tắc mới.
   + shuffle, theo dõi `val_loss`, lưu JSON tham số. Gradient check:
   sai số tương đối tối đa khoảng 1,7e-08 (< 1e-5).
 - **Decision Tree (xong, Stage 04):** `DecisionTreeRegressorModel`
-  trong `src/house_price/models/decision_tree.py`: CART viết tay,
+  trong `src/house_price/models/decision_tree.py`: CART được cài đặt bằng thư viện NumPy,
   ngưỡng là trung điểm giá trị riêng biệt liên tiếp, tìm kiếm bằng
   sort + cumulative sum, `x <= threshold` đi trái, lá là trung bình
   target. Fit thăm dò trên test: `max_depth=8` hết 1,12 giây (R2 test
@@ -100,7 +98,6 @@ ghi "dùng thư viện ML có sẵn" cũng được sửa theo quy tắc mới.
   đối chiếu với nghiệm chuẩn (như test closed-form của Linear, test
   gradient check của MLP) để chứng minh tính đúng đắn thay vì dựa
   vào thư viện.
-- Rủi ro còn lại: cây CART và rừng viết tay bằng Python thuần chạy
-  chậm (một cây không giới hạn độ sâu fit 32,29 giây; rừng 100 cây
+- Rủi ro còn lại: cây CART và rừng được cài đặt bằng thư viện NumPy chạy chậm (một cây không giới hạn độ sâu fit 32,29 giây; rừng 100 cây
   có thể mất nhiều phút), cần ghi thời gian chạy trong bảng benchmark
   của Stage 04 để giảng viên thấy rõ đánh đổi này.

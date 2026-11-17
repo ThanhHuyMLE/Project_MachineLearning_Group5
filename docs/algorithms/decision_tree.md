@@ -140,8 +140,7 @@ Cấu trúc cây lưu trong `tree_` (dict lồng nhau): nút lá có
 ## 6. Cài đặt Python
 
 File: `src/house_price/models/decision_tree.py`,
-class `DecisionTreeRegressorModel`. Đây là cây CART viết tay bằng
-NumPy; không dùng `sklearn.tree.DecisionTreeRegressor`. Xem
+class `DecisionTreeRegressorModel`. Đây là cây CART được cài đặt bằng thư viện NumPy; không dùng `sklearn.tree.DecisionTreeRegressor`. Xem
 [adr/007-mo-hinh-code-tay.md](../adr/007-mo-hinh-code-tay.md).
 
 | Phương thức | Công việc |
@@ -224,6 +223,5 @@ Hạn chế:
 - Dự đoán là hàm bậc thang (hằng số theo vùng), không mượt như MLP;
   không ngoại suy ngoài miền giá trị train (dự đoán bị chặn trong
   khoảng giá trị lá).
-- Cây viết tay bằng Python thuần chậm hơn nhiều so với cây của thư
-  viện khi không giới hạn độ sâu (32,29 giây cho một cây trên
+- Cây CART được cài đặt bằng thư viện NumPy chạy chậm hơn nhiều so với cây CART của scikit-learn khi không giới hạn độ sâu (32,29 giây cho một cây trên
   15.129 dòng x 88 cột).

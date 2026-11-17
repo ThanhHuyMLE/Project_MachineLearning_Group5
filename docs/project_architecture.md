@@ -7,7 +7,7 @@
 | `data/kc_house_data_NaN/data_raw/` | Dữ liệu King County gốc, không sửa |
 | `data/processed/` | Dữ liệu sinh ra khi chạy (gitignored) |
 | `src/house_price/preprocessing.py` | Nạp dữ liệu, chia tập, chống rò rỉ dữ liệu |
-| `src/house_price/models/` | Lớp mô hình theo mẫu 4 phương thức, viết tay bằng NumPy |
+| `src/house_price/models/` | Lớp mô hình theo mẫu 4 phương thức, được cài đặt bằng thư viện NumPy |
 | `src/house_price/evaluation.py` | MSE, RMSE, MAE, R2, MAPE |
 | `src/house_price/visualization.py` | Biểu đồ đánh giá và so sánh |
 | `src/house_price/model_comparison.py` | Bảng đối chiếu 4 mô hình |
@@ -71,7 +71,7 @@ validation, test và nhà mới. Xem
 
 ### Mô hình (`models/`)
 
-Cả 4 mô hình đều viết tay bằng NumPy, không dùng estimator có sẵn của
+Cả 4 mô hình đều được cài đặt bằng thư viện NumPy, không dùng estimator có sẵn của
 scikit-learn (xem `adr/007-mo-hinh-code-tay.md`). scikit-learn chỉ dùng
 cho tiền xử lý và metrics. Mỗi class tuân theo cùng mẫu:
 
@@ -102,15 +102,13 @@ Hợp đồng riêng từng mô hình:
   theo dõi `history_` gồm `loss` và `val_loss`; sau fit tự lưu tham số
   JSON vào `save_path` (mặc định `outputs/mlp_parameters.json`).
 - `LinearRegressorModel` (`models/linear_regression.py`): batch gradient
-  descent viết tay, `learning_rate=0.1`, `max_epochs=1000`, `tol=1e-6`
+  descent được cài đặt bằng thư viện NumPy, `learning_rate=0.1`, `max_epochs=1000`, `tol=1e-6`
   tương đối. `coef_`, `intercept_`, `history_`, `n_iter_`,
   `converged_`; `export_params(path, feature_names)` xuất JSON.
-- `DecisionTreeRegressorModel` (`models/decision_tree.py`): cây CART
-  viết tay, xây bằng ngăn xếp (lặp, không đệ quy), ngưỡng là trung điểm
+- `DecisionTreeRegressorModel` (`models/decision_tree.py`): cây CART được cài đặt bằng thư viện NumPy, xây bằng ngăn xếp (lặp, không đệ quy), ngưỡng là trung điểm
   giá trị riêng biệt liên tiếp. `tree_` là dict lồng nhau;
   `feature_importances_` chuẩn hóa về tổng 1.
-- `RandomForestRegressorModel` (`models/random_forest.py`): bagging
-  viết tay trên cây CART viết tay. Bootstrap qua `SeedSequence` spawn,
+- `RandomForestRegressorModel` (`models/random_forest.py`): bagging trên cây CART, cả hai đều được cài đặt bằng thư viện NumPy. Bootstrap qua `SeedSequence` spawn,
   mỗi cây một dãy con riêng. `max_features` mặc định `None` (xét mọi
   đặc trưng tại mỗi lần chia); `n_estimators=100` mặc định.
   `predict` trả trung bình dự đoán các cây trong `trees_`.
@@ -160,5 +158,5 @@ Hợp đồng riêng từng mô hình:
   `src/`), chỉ sắp xếp lại bên trong `src/` và bổ sung thư mục thiếu.
 - **Notebook chỉ demo:** logic dùng lại nằm trong `src/`, notebook gọi
   module đó để demo và thí nghiệm, không viết class riêng trong notebook.
-- **Mọi mô hình code tay bằng NumPy** (xem `adr/007-mo-hinh-code-tay.md`,
+- **Mọi mô hình được cài đặt bằng thư viện NumPy** (xem `adr/007-mo-hinh-code-tay.md`,
   thay thế ADR-004).

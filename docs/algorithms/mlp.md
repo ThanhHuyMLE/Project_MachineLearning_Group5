@@ -213,7 +213,7 @@ cùng. Code hiện tại không có early stopping: `fit` luôn chạy đủ
 ## 6. Cài đặt Python
 
 File: `src/house_price/models/mlp.py`, class `MLPRegressorModel`.
-Đây là MLP viết tay bằng NumPy; không dùng estimator
+Đây là MLP được cài đặt bằng thư viện NumPy; không dùng estimator
 `sklearn.MLPRegressor`.
 
 | Thành phần | Vai trò |

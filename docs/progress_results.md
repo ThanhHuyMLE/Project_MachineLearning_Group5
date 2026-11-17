@@ -47,7 +47,7 @@ Chỗ nào chưa có số thật thì để lại ghi chú chờ điền số v�
 | Mô hình | Siêu tham số dùng trong benchmark chính |
 |---|---|
 | MLP Regression | Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear); He init; Adam lr 0.001, beta1 0.9, beta2 0.999, epsilon 1e-8; epochs 100; batch size 32; random_state 42 |
-| Linear Regression | Batch gradient descent viết tay; lr 0.1; max_epochs 1000; tol 1e-6 (tương đối) |
+| Linear Regression | Batch gradient descent được cài đặt bằng thư viện NumPy; lr 0.1; max_epochs 1000; tol 1e-6 (tương đối) |
 | Decision Tree Regression | max_depth=8, random_state=42; các tham số còn lại giữ mặc định (min_samples_split=2, min_samples_leaf=1) |
 | Random Forest Regression | n_estimators=100; max_depth=None; max_features="sqrt" (mỗi lần chia lấy mẫu ngẫu nhiên sqrt(n_features) đặc trưng); min_samples_split=2; min_samples_leaf=1; random_state=42 |
 
@@ -165,7 +165,7 @@ validation, cùng seed 42.
 
 Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên không còn nguyên vẹn thống kê; các số trong bảng trên là đo thật của lần chạy ngày 17/11/2026 nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
 
-Đối chiếu với Stage 03: MLP được benchmark mới xác nhận lại đúng số cũ (R2 0,8354, cùng MSE/RMSE/MAE). Linear Regression ở Stage 03 là bản sklearn OLS (R2 0,8154, MSE 26.546.613.099,42); bản viết tay bằng gradient descent trong benchmark này đạt R2 0,8119, MSE 27.053.237.258,13. Số Stage 03 giữ nguyên trong mục lịch sử bên dưới, không dùng làm số benchmark chính.
+Đối chiếu với Stage 03: MLP được benchmark mới xác nhận lại đúng số cũ (R2 0,8354, cùng MSE/RMSE/MAE). Linear Regression ở Stage 03 là bản sklearn OLS (R2 0,8154, MSE 26.546.613.099,42); bản được cài đặt bằng thư viện NumPy với gradient descent trong benchmark này đạt R2 0,8119, MSE 27.053.237.258,13. Số Stage 03 giữ nguyên trong mục lịch sử bên dưới, không dùng làm số benchmark chính.
 
 ### Kết quả Stage 03 (lịch sử, giữ nguyên để đối chiếu)
 

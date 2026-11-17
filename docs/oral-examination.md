@@ -621,7 +621,7 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
 
 ### E1. Linear Regression trong repo học hệ số bằng cách nào?
 
-1. **Đáp ngắn:** Batch gradient descent viết tay: khởi tạo beta bằng
+1. **Đáp ngắn:** Batch gradient descent được cài đặt bằng thư viện NumPy: khởi tạo beta bằng
    0, lặp tính gradient `(2/n) X_aug^T (X_aug beta - y)` với
    `X_aug = [1 | X]` rồi cập nhật `beta <- beta - lr * gradient`,
    dừng sớm khi thay đổi tương đối của loss nhỏ hơn 1e-6.
@@ -634,9 +634,7 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
 3. **Tham chiếu source:** `src/house_price/models/linear_regression.py`,
    `LinearRegressorModel.fit`, `export_params`.
 4. **Hiểu lầm thường gặp:** "Linear Regression trong repo dùng
-   `sklearn.linear_model.LinearRegression`." Sai: code viết tay hoàn
-   toàn bằng NumPy theo ADR-007; sklearn chỉ dùng cho tiền xử lý và
-   metrics.
+   `sklearn.linear_model.LinearRegression`." Sai: mô hình được cài đặt hoàn toàn bằng thư viện NumPy theo ADR-007; sklearn chỉ dùng cho tiền xử lý và metrics.
 
 ### E2. Decision Tree chọn đặc trưng và ngưỡng chia thế nào?
 
@@ -796,7 +794,7 @@ khoảng 2-4 phút, tổng khoảng 20-25 phút):
    chia theo MSE có trọng số), Random Forest (bagging + trung bình).
    Nhấn mạnh hiệu chỉnh: Sigmoid trong (0, 1) không bao giờ bằng 0/1;
    Softmax cộng lại bằng 1.
-3. **Implementation:** Cả 4 mô hình code tay bằng NumPy theo ADR-007;
+3. **Implementation:** Cả 4 mô hình được cài đặt bằng thư viện NumPy theo ADR-007;
    mẫu chung `__init__` -> `build_model` -> `fit` -> `predict`;
    gradient check (sai số 1,7e-08); pipeline chống leakage (chia
    theo nhóm id, fit preprocessor chỉ trên train).
@@ -818,5 +816,5 @@ khoảng 2-4 phút, tổng khoảng 20-25 phút):
 8. **Conclusion:** Kết luận chính (chuẩn hóa quyết định hiệu năng MLP;
    MLP vượt baseline tuyến tính; rừng là đối chiếu mạnh nhất trên
    dữ liệu bảng); hạn chế (chưa early stopping/Dropout, chưa thử
-   log1p(price), rừng viết tay chậm); hướng cải tiến (Early Stopping
+   log1p(price), rừng được cài đặt bằng thư viện NumPy nên chạy chậm); hướng cải tiến (Early Stopping
    theo val_loss, log1p(price), đồng nhất notebook sang 88 đặc trưng).

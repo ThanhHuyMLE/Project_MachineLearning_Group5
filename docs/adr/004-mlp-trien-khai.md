@@ -1,4 +1,4 @@
-# ADR-004: MLP triển khai bằng NumPy viết tay (thay thế quyết định sklearn tạm thời)
+# ADR-004: MLP được cài đặt bằng thư viện NumPy (thay thế quyết định sklearn tạm thời)
 
 - Trạng thái: Đã thay thế bởi [ADR-007](007-mo-hinh-code-tay.md)
   (10/11/2026). Quyết định gốc dưới đây chỉ giữ lại vì lý do lịch sử;
@@ -43,14 +43,13 @@ pandas 3.0.6, numpy 2.5.4 nhưng **không có TensorFlow** và chưa thử cài 
 Tiêu đề gốc nói "sklearn MLPRegressor trước, Keras là lựa chọn sau",
 nhưng mục Quyết định gốc đã ghi "MLP được tự triển khai bằng NumPy"
 và không dùng `sklearn.MLPRegressor`. Mâu thuẫn này xuất phát từ việc
-file được cập nhật nội dung quyết định sau khi code MLP viết tay hoàn
-thành, nhưng tiêu đề không được sửa theo. Ngày 10/11/2026, quy tắc
-code tay của nhóm (xem ADR-007) đã thay thế hoàn toàn lựa chọn
+file được cập nhật nội dung quyết định sau khi mô hình MLP được cài đặt bằng thư viện NumPy hoàn thành, nhưng tiêu đề không được sửa theo. Ngày 10/11/2026, quy tắc
+dùng thư viện NumPy để cài đặt mô hình của nhóm (xem ADR-007) đã thay thế hoàn toàn lựa chọn
 sklearn tạm thời, nên tiêu đề cũ không còn đúng ở bất kỳ phần nào.
 
 ## Quyết định hiện tại
 
-- Tiêu đề file này đã sửa thành "MLP triển khai bằng NumPy viết tay
+- Tiêu đề file này đã sửa thành "MLP được cài đặt bằng thư viện NumPy
   (thay thế quyết định sklearn tạm thời)" để khớp với thực tế.
 - Trạng thái chuyển thành "Đã thay thế bởi ADR-007"; ADR-007 là căn
   cứ hiện hành cho mọi mô hình, không chỉ MLP.

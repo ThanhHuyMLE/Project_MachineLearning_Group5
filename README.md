@@ -45,7 +45,7 @@ hình của scikit-learn, TensorFlow hay Keras (xem
 | Stage | Nội dung | File chính |
 |---|---|---|
 | Stage 01: Data Understanding & Preprocessing | Dữ liệu, EDA, kỹ thuật đặc trưng, chia tập, chuẩn hóa | `src/house_price/preprocessing.py`, `docs/king-county-dataset.md` |
-| Stage 02: MLP Architecture & Implementation | Kiến trúc và cài đặt MLP viết tay | `src/house_price/models/mlp.py`, `docs/algorithms/mlp.md` |
+| Stage 02: MLP Architecture & Implementation | Kiến trúc và cài đặt MLP bằng thư viện NumPy | `src/house_price/models/mlp.py`, `docs/algorithms/mlp.md` |
 | Stage 03: Model Training & Evaluation | Huấn luyện, đánh giá, trực quan hóa | `src/house_price/train_evaluate.py`, `src/house_price/evaluation.py`, `src/house_price/visualization.py` |
 | Stage 04: Model Benchmarking & Analysis | 3 mô hình đối chiếu, bảng so sánh 4 mô hình | `src/house_price/models/linear_regression.py`, `decision_tree.py`, `random_forest.py`, `src/house_price/model_comparison.py` |
 
@@ -74,7 +74,7 @@ Decision Tree 0,7198).
 
 Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên không còn nguyên vẹn thống kê; các số trên là đo thật của lần chạy này nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
 
-Ghi chú về Linear Regression: số R2 0,8154 của Stage 03 là bản sklearn OLS, chỉ giữ làm lịch sử trong [docs/progress_results.md](docs/progress_results.md); số chính thức trong bảng trên là bản viết tay bằng gradient descent (R2 0,8119).
+Ghi chú về Linear Regression: số R2 0,8154 của Stage 03 là bản sklearn OLS, chỉ giữ làm lịch sử trong [docs/progress_results.md](docs/progress_results.md); số chính thức trong bảng trên là bản được cài đặt bằng thư viện NumPy với gradient descent (R2 0,8119).
 
 ## 5. Cấu trúc thư mục
 
@@ -123,7 +123,7 @@ Không dùng tập test để chọn mô hình hay chỉnh siêu tham số.
 - Các thư viện chính trong `requirements.txt`: numpy, pandas,
   scikit-learn (chỉ dùng cho tiền xử lý và metrics), matplotlib,
   seaborn, joblib.
-- Không cần TensorFlow/Keras: mọi mô hình đều viết tay bằng NumPy.
+- Không cần TensorFlow/Keras: mọi mô hình đều được cài đặt bằng thư viện NumPy.
 
 ## 7. Cài đặt
 
@@ -169,7 +169,7 @@ Tùy chọn đường dẫn dữ liệu và thư mục đầu ra:
 python -m house_price.train_evaluate --data data/kc_house_data_NaN/data_raw/kc_house_data_NaN.csv --output-dir outputs --evaluation-split test
 ```
 
-Lưu ý: huấn luyện rừng 100 cây CART viết tay có thể mất nhiều phút;
+Lưu ý: huấn luyện rừng 100 cây CART được cài đặt bằng thư viện NumPy có thể mất nhiều phút;
 xem thời gian chạy trong bảng benchmark của Stage 04.
 
 ## 9. Chạy kiểm thử
@@ -181,7 +181,7 @@ pytest
 Pytest đã cấu hình sẵn trong `pyproject.toml` (`testpaths = ["tests"]`,
 `pythonpath = ["src"]`) nên chạy từ thư mục gốc của repo, không cần
 cài gói trước. Các test kiểm tra hợp đồng module, tiền xử lý, chỉ số
-đánh giá, gradient của MLP và tính đúng đắn của từng mô hình viết tay.
+đánh giá, gradient của MLP và tính đúng đắn của từng mô hình được cài đặt bằng thư viện NumPy.
 
 ## 10. Kiểm tra phong cách code
 
@@ -224,10 +224,10 @@ y_pred = model.predict(X_test)
 
 | Mô hình | Cài đặt | Siêu tham số mặc định |
 |---|---|---|
-| MLP Regression | NumPy viết tay: Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear), He init, Adam | lr 0.001, epochs 100, batch 32, beta1 0.9, beta2 0.999, epsilon 1e-8 |
-| Linear Regression | NumPy viết tay: batch gradient descent trên `X_aug = [1 \| X]` | lr 0.1, max_epochs 1000, tol 1e-6 (tương đối) |
-| Decision Tree Regression | CART viết tay: chia theo MSE có trọng số, ngưỡng là trung điểm giá trị riêng biệt | max_depth không giới hạn, min_samples_split 2, min_samples_leaf 1 |
-| Random Forest Regression | Bagging viết tay trên cây CART viết tay, bootstrap qua SeedSequence | n_estimators 100, max_features mặc định ("sqrt") |
+| MLP Regression | Được cài đặt bằng thư viện NumPy: Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear), He init, Adam | lr 0.001, epochs 100, batch 32, beta1 0.9, beta2 0.999, epsilon 1e-8 |
+| Linear Regression | Được cài đặt bằng thư viện NumPy: batch gradient descent trên `X_aug = [1 \| X]` | lr 0.1, max_epochs 1000, tol 1e-6 (tương đối) |
+| Decision Tree Regression | CART được cài đặt bằng thư viện NumPy: chia theo MSE có trọng số, ngưỡng là trung điểm giá trị riêng biệt | max_depth không giới hạn, min_samples_split 2, min_samples_leaf 1 |
+| Random Forest Regression | Bagging trên cây CART, cả hai đều được cài đặt bằng thư viện NumPy, bootstrap qua SeedSequence | n_estimators 100, max_features mặc định ("sqrt") |
 
 Giải thích chi tiết từng thuật toán (mục đích, toán, mã giả khớp
 source, siêu tham số, metrics, ưu/nhược điểm):
@@ -273,7 +273,7 @@ Sau khi chạy pipeline, thư mục `outputs/` chứa:
 - Tài liệu viết bằng tiếng Việt, thuật ngữ kỹ thuật giữ nguyên tiếng Anh.
   Tên biến, hàm, class, module viết bằng tiếng Anh.
 - Không ghi kết quả chưa chạy như kết quả đã kiểm chứng.
-- Mọi mô hình code tay bằng NumPy; sklearn chỉ dùng cho tiền xử lý
+- Mọi mô hình được cài đặt bằng thư viện NumPy; sklearn chỉ dùng cho tiền xử lý
   và metrics (xem [docs/adr/007-mo-hinh-code-tay.md](docs/adr/007-mo-hinh-code-tay.md)).
 
 ## 16. Tài liệu tham khảo

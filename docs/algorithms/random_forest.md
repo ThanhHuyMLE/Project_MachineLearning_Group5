@@ -212,8 +212,7 @@ trong `trees_` rồi mới vẽ.
 Hạn chế:
 
 - Tốn bộ nhớ và thời gian huấn luyện lớn hơn cây đơn lẻ khoảng
-  `n_estimators` lần; fit 100 cây CART viết tay bằng Python thuần
-  trên 15.129 dòng x 88 cột có thể mất nhiều phút.
+  `n_estimators` lần; fit 100 cây CART được cài đặt bằng thư viện NumPy trên 15.129 dòng x 88 cột có thể mất nhiều phút.
 - Khó giải thích từng dự đoán riêng lẻ (mô hình hộp đen tập hợp).
 - Không ngoại suy tốt ngoài miền giá trị train: dự đoán bị chặn
   trong khoảng giá trị lá của các cây.
