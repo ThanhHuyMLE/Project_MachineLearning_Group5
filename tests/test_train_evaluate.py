@@ -56,7 +56,7 @@ def shifted_val_dataset(synthetic_dataset):
 def _assert_table_matches_metrics(table, predictions, y_true):
     """Mỗi dòng của bảng phải khớp metric tính tay từ cùng dự đoán."""
     assert list(table.columns) == ["model", "mse", "rmse", "mae", "r2", "mape"]
-    assert len(table) == 4
+    assert len(table) == len(MODEL_NAMES)
     for name in MODEL_NAMES:
         row = table.loc[table["model"] == name].iloc[0]
         expected = regression_metrics(y_true, predictions[name])

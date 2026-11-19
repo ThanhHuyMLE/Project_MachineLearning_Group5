@@ -16,6 +16,7 @@ from house_price.models import (
     DecisionTreeRegressorModel,
     LinearRegressorModel,
     MLPRegressorModel,
+    MLPTorchRegressorModel,
     RandomForestRegressorModel,
 )
 from house_price.preprocessing import prepare_data
@@ -36,7 +37,9 @@ DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs"
 # outputs/validation_comparison.csv). Thời gian fit tuyệt đối phụ
 # thuộc phần cứng và tải máy nên chỉ thứ tự tương đối mới là bằng chứng.
 # - MLP: kiến trúc Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear),
-#   Adam, 100 epoch, batch 32.
+#   Adam, 100 epoch, batch 32. Bản NumPy cài đặt bằng NumPy; bản PyTorch
+#   (yêu cầu của cô giáo, xem ADR-008) dùng cùng kiến trúc và cấu hình,
+#   huấn luyện bằng torch.nn, DataLoader, MSELoss và Adam.
 # - Linear: batch gradient descent viết tay, lr=0.1, tối đa 1000 epoch,
 #   dừng sớm khi thay đổi tương đối của loss < tol=1e-6.
 #   Đo trên validation: val R2 0.8091 (fit 1.96s).
@@ -51,6 +54,7 @@ DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs"
 #   rừng bị loại vì val R2 rơi xuống 0.7839 (10 cây, sqrt, fit 1.38s).
 BENCHMARK_CONFIG = {
     "MLP Regression": {"epochs": 100, "batch_size": 32},
+    "PyTorch MLP Regression": {"epochs": 100, "batch_size": 32},
     "Linear Regression": {
         "learning_rate": 0.1,
         "max_epochs": 1000,
@@ -66,6 +70,7 @@ BENCHMARK_CONFIG = {
 
 MODEL_NAMES = [
     "MLP Regression",
+    "PyTorch MLP Regression",
     "Linear Regression",
     "Decision Tree Regression",
     "Random Forest Regression",
@@ -91,9 +96,10 @@ def _evaluation_split_info(evaluation_split: str) -> tuple[str, str]:
 
 
 def build_models(output_dir: str | Path = DEFAULT_OUTPUT_DIR) -> dict[str, object]:
-    """Tạo đủ 4 mô hình với cấu hình benchmark trong BENCHMARK_CONFIG."""
+    """Tạo đủ 5 mô hình với cấu hình benchmark trong BENCHMARK_CONFIG."""
     output_dir = Path(output_dir)
     mlp_config = BENCHMARK_CONFIG["MLP Regression"]
+    mlp_torch_config = BENCHMARK_CONFIG["PyTorch MLP Regression"]
     linear_config = BENCHMARK_CONFIG["Linear Regression"]
     tree_config = BENCHMARK_CONFIG["Decision Tree Regression"]
     forest_config = BENCHMARK_CONFIG["Random Forest Regression"]
@@ -103,6 +109,11 @@ def build_models(output_dir: str | Path = DEFAULT_OUTPUT_DIR) -> dict[str, objec
             epochs=mlp_config["epochs"],
             batch_size=mlp_config["batch_size"],
             save_path=output_dir / "mlp_parameters.json",
+        ),
+        "PyTorch MLP Regression": MLPTorchRegressorModel(
+            epochs=mlp_torch_config["epochs"],
+            batch_size=mlp_torch_config["batch_size"],
+            save_path=output_dir / "mlp_torch_parameters.pt",
         ),
         "Linear Regression": LinearRegressorModel(
             learning_rate=linear_config["learning_rate"],
@@ -125,7 +136,7 @@ def train_and_evaluate(
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
     evaluation_split: str = "val",
 ) -> tuple[pd.DataFrame, dict[str, object]]:
-    """Fit cả 4 mô hình trên train và đánh giá trên tập đã chọn.
+    """Fit cả 5 mô hình trên train và đánh giá trên tập đã chọn.
 
     Mặc định đánh giá trên validation (``evaluation_split="val"``), dùng
     khi chọn/tinh chỉnh cấu hình; truyền ``"test"`` để đánh giá cuối trên
@@ -155,7 +166,7 @@ def train_and_evaluate(
     for name, model in models.items():
         fit_start = time.perf_counter()
         try:
-            if isinstance(model, MLPRegressorModel):
+            if isinstance(model, (MLPRegressorModel, MLPTorchRegressorModel)):
                 model.build_model(input_size=data["X_train"].shape[1])
 
                 if "X_val" in data and "y_val" in data:
@@ -181,7 +192,8 @@ def train_and_evaluate(
         print(f"Fit {name}: {fit_seconds[name]:.2f} giây", flush=True)
 
         # Xuất tham số đã học cho mô hình hỗ trợ export_params (Linear).
-        # MLP tự lưu tham số thành JSON trong fit qua save_path.
+        # MLP NumPy tự lưu tham số thành JSON trong fit qua save_path;
+        # MLP PyTorch tự lưu state_dict thành .pt trong fit qua save_path.
         export_params = getattr(model, "export_params", None)
         if callable(export_params):
             slug = name.lower().replace(" ", "_")

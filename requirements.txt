@@ -1,3 +1,8 @@
+# PyTorch (CPU-only): chi dung cho MLP theo yeu cau cua co giao (ADR-008).
+# Ban da cai dat: torch 2.15.0+cpu (Python 3.14, venv-ml-linux).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.9,<3
+
 numpy>=1.24,<3
 pandas>=2.0,<4
 scikit-learn>=1.3,<2
@@ -13,3 +18,6 @@ joblib>=1.3
 # (MLPRegressor, LinearRegression, DecisionTreeRegressor,
 # RandomForestRegressor) va khong dung TensorFlow/Keras.
 # tensorflow>=2.15
+# Ngoai le: MLP co them ban PyTorch (src/house_price/models/mlp_torch.py)
+# theo yeu cau cua co giao (ADR-008); Linear, Decision Tree, Random Forest
+# van code tay bang NumPy. TensorFlow/Keras van KHONG dung.

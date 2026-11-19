@@ -11,6 +11,15 @@ gradient backpropagation và cập nhật Adam được viết trong class, khô
 dùng `sklearn.MLPRegressor`, TensorFlow hoặc Keras để huấn luyện.
 Xem [adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md).
 
+Ngoài bản NumPy, MLP còn có bản PyTorch trong
+`src/house_price/models/mlp_torch.py` (class `MLPTorchRegressorModel`),
+theo yêu cầu của cô giáo cho lab 4 (xem
+[adr/008-mlp-pytorch.md](../adr/008-mlp-pytorch.md)). Bản PyTorch dùng
+cùng kiến trúc và cùng cấu hình (Adam lr 0.001, epochs 100, batch 32,
+seed 42), huấn luyện bằng `torch.nn`, DataLoader, MSELoss, Adam và
+autograd theo đúng 6 bước trong slide của cô giáo; bản NumPy được giữ
+nguyên làm đối chiếu.
+
 Kiến trúc mặc định:
 
 ```text
@@ -241,6 +250,45 @@ Kiểm chứng tính đúng đắn: test gradient check trong
 với gradient số (finite difference); sai số tương đối tối đa khoảng
 1,7e-08, nhỏ hơn ngưỡng 1e-5.
 
+### Bản PyTorch (MLPTorchRegressorModel)
+
+File: `src/house_price/models/mlp_torch.py`. Bản PyTorch giữ nguyên
+interface `__init__` -> `build_model` -> `fit` -> `predict` và cùng
+siêu tham số với bản NumPy (trừ `beta1`/`beta2`/`epsilon`, dùng mặc
+định của `torch.optim.Adam`), để pipeline, benchmark và notebook
+không đổi cách gọi.
+
+| Thành phần | Vai trò |
+|---|---|
+| `__init__(...)` | Lưu cấu hình tầng ẩn, learning rate, batch size, số epoch và trạng thái ban đầu |
+| `build_model(input_size)` | Tạo mạng `_MLPNetwork` (Linear + ReLU, He init dạng chuẩn), seed NumPy/Python/torch |
+| `fit(X_train, y_train, X_val=None, y_val=None)` | Huấn luyện theo 6 bước của cô giáo, ghi loss/val_loss từng epoch và tự lưu state_dict |
+| `predict(X)` | Trả về giá dự đoán; yêu cầu model đã fit và đầu vào có đúng số cột |
+| `save(path=None)` / `load(path)` | Lưu/nạp state_dict kèm siêu tham số và history (bước 6: Save/Load) |
+| `_mse(X, y)` | Tính MSE toàn bộ tập bằng forward, không cập nhật trọng số |
+
+6 bước huấn luyện theo slide của cô giáo, khớp với code trong `fit`:
+
+1. Chuẩn bị dữ liệu: `TensorDataset` (tensor float32) và `DataLoader`
+   (batch 32, shuffle bằng generator có seed cố định nên lặp lại được).
+2. Định nghĩa mô hình: `_MLPNetwork` là `nn.Sequential` gồm
+   Linear -> ReLU -> Linear -> ReLU -> Linear.
+3. Hàm loss MSE (`nn.MSELoss`) và optimizer Adam
+   (`torch.optim.Adam`, lr 0.001).
+4. Training loop: mỗi batch `zero_grad` -> forward -> loss ->
+   `backward` (autograd) -> `step`.
+5. Validation: sau mỗi epoch tính MSE trên train và validation
+   (chỉ forward), ghi vào `history_`.
+6. Save/Load: `fit` tự lưu checkpoint (state_dict + siêu tham số +
+   history) vào `outputs/mlp_torch_parameters.pt`; nạp lại bằng
+   `MLPTorchRegressorModel.load(path)`.
+
+Khởi tạo He dạng chuẩn (`kaiming_normal_`, nonlinearity ReLU) cho mọi
+tầng Linear và bias 0, giống bản NumPy (phân phối chuẩn
+`N(0, sqrt(2/fan_in))`). Test trong `tests/test_mlp_torch.py` kiểm
+tra kiến trúc, loss giảm khi train, R2 trên dữ liệu synthetic, lưu/nạp
+cho cùng dự đoán và lặp lại được với cùng seed.
+
 ## 7. Siêu tham số
 
 | Tham số | Mặc định | Ý nghĩa |
@@ -254,6 +302,10 @@ với gradient số (finite difference); sai số tương đối tối đa kho�
 | `beta2` | 0.999 | Hệ số trung bình động bậc hai của Adam |
 | `epsilon` | 1e-8 | Hằng số tránh chia cho 0 trong Adam |
 | `save_path` | `outputs/mlp_parameters.json` | Nơi lưu tham số đã học sau khi fit |
+
+Bản PyTorch dùng cùng bảng trên (trừ `beta1`/`beta2`/`epsilon`, dùng
+mặc định của `torch.optim.Adam`), với `save_path` mặc định là
+`outputs/mlp_torch_parameters.pt` (state_dict thay cho JSON).
 
 ## 8. Dữ liệu sử dụng
 
@@ -315,6 +367,21 @@ Stage 03, xem [progress_results.md](../progress_results.md):
 R² = 0,8354 không có nghĩa là dự đoán đúng 83,54%; đó là chỉ số giải
 thích biến thiên theo định nghĩa R². Số liệu có thể đổi khi source,
 dữ liệu hoặc cấu hình thay đổi.
+
+Bản PyTorch (cùng tập test, cùng pipeline, chạy ngày 19/11/2026):
+
+| Chỉ số | Kết quả |
+|---|---:|
+| Test MSE | 23.956.240.614,18 |
+| Test RMSE | 154.778,04 USD |
+| Test MAE | 89.838,73 USD |
+| Test R² | 0,8334 |
+| Test MAPE | 17,80% (17,7992% trong `outputs/metrics.csv`) |
+
+Bản PyTorch gần như tương đương bản NumPy: R2 thấp hơn 0,0020, RMSE
+cao hơn 897 USD, nhưng MAE thấp hơn 553 USD và MAPE thấp hơn 0,26
+điểm phần trăm. Trên validation: PyTorch R2 0,8287 so với NumPy R2
+0,8310.
 
 ## 11. Trực quan hóa và demo
 

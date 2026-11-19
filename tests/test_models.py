@@ -15,6 +15,7 @@ from house_price.models import (
     DecisionTreeRegressorModel,
     LinearRegressorModel,
     MLPRegressorModel,
+    MLPTorchRegressorModel,
     RandomForestRegressorModel,
 )
 from house_price.train_evaluate import MODEL_NAMES, train_and_evaluate
@@ -93,6 +94,12 @@ def _build_contract_model(model_class, tmp_path):
             batch_size=16,
             save_path=tmp_path / "mlp_parameters.json",
         )
+    if model_class is MLPTorchRegressorModel:
+        return MLPTorchRegressorModel(
+            epochs=5,
+            batch_size=16,
+            save_path=tmp_path / "mlp_torch_parameters.pt",
+        )
     return model_class()
 
 
@@ -100,19 +107,20 @@ def _build_contract_model(model_class, tmp_path):
     "model_class",
     [
         MLPRegressorModel,
+        MLPTorchRegressorModel,
         LinearRegressorModel,
         DecisionTreeRegressorModel,
         RandomForestRegressorModel,
     ],
 )
-def test_all_four_models_build_fit_and_predict_on_synthetic_data(model_class, tmp_path):
-    """Hợp đồng chung: cả 4 mô hình đều build/fit/predict được."""
+def test_all_five_models_build_fit_and_predict_on_synthetic_data(model_class, tmp_path):
+    """Hợp đồng chung: cả 5 mô hình đều build/fit/predict được."""
     rng = np.random.default_rng(0)
     X = rng.normal(size=(60, 6))
     y = 3 * X[:, 0] - 2 * X[:, 1] + 0.5 * X[:, 2] + 10
 
     model = _build_contract_model(model_class, tmp_path)
-    if model_class is MLPRegressorModel:
+    if model_class in (MLPRegressorModel, MLPTorchRegressorModel):
         model.build_model(input_size=X.shape[1])
     else:
         model.build_model()
@@ -124,8 +132,8 @@ def test_all_four_models_build_fit_and_predict_on_synthetic_data(model_class, tm
     assert np.isfinite(predictions).all()
 
 
-def test_train_and_evaluate_returns_all_four_models_on_synthetic_data(tmp_path):
-    """train_and_evaluate phải trả đủ 4 dòng, không bỏ qua mô hình nào."""
+def test_train_and_evaluate_returns_all_five_models_on_synthetic_data(tmp_path):
+    """train_and_evaluate phải trả đủ 5 dòng, không bỏ qua mô hình nào."""
     rng = np.random.default_rng(42)
     X = rng.normal(size=(80, 6))
     true_w = np.array([3.5, -2.0, 1.2, 0.8, -1.5, 2.2])
@@ -141,10 +149,11 @@ def test_train_and_evaluate_returns_all_four_models_on_synthetic_data(tmp_path):
 
     table, predictions = train_and_evaluate(data, tmp_path, evaluation_split="test")
 
-    assert len(table) == 4
+    assert len(table) == 5
     assert set(table["model"]) == set(MODEL_NAMES)
     assert set(predictions) == set(MODEL_NAMES)
     assert (tmp_path / "mlp_parameters.json").is_file()
+    assert (tmp_path / "mlp_torch_parameters.pt").is_file()
     assert (tmp_path / "linear_regression_parameters.json").is_file()
     for name in MODEL_NAMES:
         slug = name.lower().replace(" ", "_")
