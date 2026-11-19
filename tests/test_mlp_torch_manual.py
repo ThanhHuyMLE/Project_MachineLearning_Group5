@@ -15,6 +15,9 @@ lập với nhau:
 4. Shape/dtype/device của tham số, lỗi khi chưa fit, sai input_size.
 5. Một bước Adam viết tay di chuyển tham số ngược hướng gradient.
 6. Round-trip save/load cho cùng dự đoán.
+7. Gradient check in float64: same central-difference protocol on a
+   two-hidden-layer net, isolating hand-written math errors from
+   float32 rounding (see test_manual_gradient_float64_central_difference).
 """
 
 from __future__ import annotations
@@ -45,6 +48,21 @@ FINITE_DIFF_EPS = 1e-3
 # kiểm tra gradient nằm cách xa biên không khả vi của ReLU (z = 0).
 MIN_ABS_PRE_ACTIVATION = 1e-3
 
+# Tolerance for the float64 gradient check. Measured on the 3 -> 4 -> 4 -> 1
+# network with eps = 1e-3: max relative error 1.475e-11 (max(|a|, |n|)
+# definition), max absolute error 8.517e-13. The 1e-7 tolerance is about
+# 7000x above the measured error, yet 5 orders tighter than the float32
+# threshold (1e-2) and still tight enough to catch common derivative bugs
+# (for example a missing 2/n factor in the MSE derivative shifts the
+# error by O(1)).
+GRADIENT_TOLERANCE_FLOAT64 = 1e-7
+# Step for the float64 central difference. Same eps as the float32 check,
+# so the two errors are directly comparable. The eps sweep on this setup
+# (1e-2 down to 1e-9) shows the error is rounding-dominated and shrinks
+# as eps grows, while eps stays 30x below the smallest |z| (3.0e-02), so
+# no perturbation crosses a ReLU kink.
+FINITE_DIFF_EPS_FLOAT64 = 1e-3
+
 
 def _synthetic_data(seed=7, n_samples=6, n_features=3):
     """Dữ liệu synthetic tuyến tính kèm nhiễu nhỏ, seed cố định."""
@@ -60,6 +78,13 @@ def _max_relative_error(analytic, numeric):
     """Sai số tương đối lớn nhất, mẫu số có sàn để tránh chia cho 0."""
     abs_error = np.abs(analytic - numeric)
     denominator = np.maximum(np.abs(analytic) + np.abs(numeric), 1e-8)
+    return float(np.max(abs_error / denominator))
+
+
+def _relative_error_max(analytic, numeric):
+    """Relative error with a max denominator: |a - n| / max(|a|, |n|, 1e-12)."""
+    abs_error = np.abs(analytic - numeric)
+    denominator = np.maximum(np.maximum(np.abs(analytic), np.abs(numeric)), 1e-12)
     return float(np.max(abs_error / denominator))
 
 
@@ -127,6 +152,115 @@ def test_manual_gradient_matches_finite_difference():
         f"Sai số tương đối tối đa là {max_error:.3e} tại {worst_location}, "
         f"vượt ngưỡng {GRADIENT_TOLERANCE:.0e}; "
         "nghi đạo hàm trong _backward sai, xem lại ReLU/MSE theo từng layer."
+    )
+
+
+def test_manual_gradient_float64_central_difference():
+    """Analytic gradient from ``_backward`` matches finite differences in float64.
+
+    Same central-difference protocol as the float32 check, but every
+    tensor is float64 and the network has two hidden layers (3 -> 4 -> 4
+    -> 1, 41 parameters), so weights and biases of the first, hidden and
+    output layers are all verified. The float64 run isolates errors in
+    the hand-written math from float32 rounding: at the same eps = 1e-3
+    the float32 check measures 1.739e-03 (sum-denominator definition)
+    while float64 measures 7.374e-12 under that same definition.
+
+    Setup notes: ``build_model`` always creates float32 parameters, so
+    the test casts the He-initialized weights and biases to float64
+    (an exact cast, same values). ``_forward``, ``_backward`` and
+    ``mse_loss`` are dtype-agnostic; only ``_relu_derivative`` returns
+    float32, which is exact here because its values are 0/1, and the
+    test asserts the analytic gradients come back float64.
+
+    The check point avoids the ReLU kink: seeds are chosen so that every
+    hidden pre-activation has |z| above 3e-02 and every hidden unit sees
+    both positive and negative pre-activations across the batch. (The
+    float32 test's seeds give a dead sample row in this two-hidden-layer
+    net: one sample's first-layer activations are all zero, so its
+    second-layer pre-activations are exactly 0 and the central
+    difference disagrees with the z = 0 subgradient convention by O(1).
+    That disagreement is a property of the kink, not of ``_backward``.)
+
+    Relative error uses |a - n| / max(|a|, |n|, 1e-12).
+    """
+    X, y = _synthetic_data(seed=8)
+    model = MLPTorchManualModel(
+        hidden_layer_sizes=(4, 4),
+        learning_rate=0.01,
+        epochs=1,
+        batch_size=6,
+        random_state=7,
+    )
+    model.build_model(input_size=3)
+    # build_model creates float32 parameters; cast them to float64 so the
+    # whole forward/backward pass runs in float64.
+    model.weights_ = [weight.to(torch.float64) for weight in model.weights_]
+    model.biases_ = [bias.to(torch.float64) for bias in model.biases_]
+    for param in [*model.weights_, *model.biases_]:
+        assert param.dtype == torch.float64
+
+    X_tensor = torch.from_numpy(X.astype(np.float64))
+    y_tensor = torch.from_numpy(y.astype(np.float64))
+
+    y_pred, cache = model._forward(X_tensor)
+    _, pre_activations = cache
+    for layer_index, z in enumerate(pre_activations[:-1]):
+        z_np = z.numpy()
+        min_abs = float(np.min(np.abs(z_np)))
+        assert min_abs > MIN_ABS_PRE_ACTIVATION, (
+            f"min |z| in hidden layer {layer_index} is {min_abs:.3e}, "
+            "too close to the ReLU kink (z = 0); change the seeds."
+        )
+        assert ((z_np > 0).sum(axis=0) > 0).all() and ((z_np < 0).sum(axis=0) > 0).all(), (
+            f"every unit of hidden layer {layer_index} must see both "
+            "positive and negative pre-activations; change the seeds."
+        )
+
+    grad_weights, grad_biases = model._backward(y_tensor, y_pred, cache)
+    for grad in [*grad_weights, *grad_biases]:
+        assert grad.dtype == torch.float64
+
+    max_abs_error = 0.0
+    max_rel_error = 0.0
+    worst_location = None
+    param_count = 0
+    layer_count = len(model.weights_)
+    for layer_index in range(layer_count):
+        for kind, params, grads in (
+            ("weights", model.weights_, grad_weights),
+            ("biases", model.biases_, grad_biases),
+        ):
+            for index in np.ndindex(params[layer_index].shape):
+                param_count += 1
+                old_value = float(params[layer_index][index])
+                params[layer_index][index] = old_value + FINITE_DIFF_EPS_FLOAT64
+                loss_plus = float(mse_loss(model._forward(X_tensor)[0], y_tensor))
+                params[layer_index][index] = old_value - FINITE_DIFF_EPS_FLOAT64
+                loss_minus = float(mse_loss(model._forward(X_tensor)[0], y_tensor))
+                params[layer_index][index] = old_value
+
+                numeric_grad = (loss_plus - loss_minus) / (2.0 * FINITE_DIFF_EPS_FLOAT64)
+                analytic_grad = float(grads[layer_index][index])
+                abs_error = abs(analytic_grad - numeric_grad)
+                rel_error = _relative_error_max(np.array(analytic_grad), np.array(numeric_grad))
+                max_abs_error = max(max_abs_error, abs_error)
+                if rel_error > max_rel_error:
+                    max_rel_error = rel_error
+                    worst_location = (kind, layer_index, index)
+
+    print(
+        f"float64 gradient check: max abs error {max_abs_error:.3e}, "
+        f"max relative error {max_rel_error:.3e} "
+        "(|a - n| / max(|a|, |n|, 1e-12)), "
+        f"n_params={param_count}, worst at {worst_location}"
+    )
+    assert param_count == 41
+    assert max_rel_error < GRADIENT_TOLERANCE_FLOAT64, (
+        f"float64 max relative error is {max_rel_error:.3e} "
+        f"(max abs error {max_abs_error:.3e}) at {worst_location}, "
+        f"above the tolerance {GRADIENT_TOLERANCE_FLOAT64:.0e}; "
+        "the hand-written derivative in _backward is likely wrong."
     )
 
 
