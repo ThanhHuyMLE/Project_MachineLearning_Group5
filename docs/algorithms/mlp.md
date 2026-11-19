@@ -6,10 +6,16 @@ Multilayer Perceptron (MLP) là mạng nơ-ron truyền thẳng, gồm các tầ
 neuron nối tiếp nhau. Mô hình học quan hệ phi tuyến giữa các đặc trưng
 của căn nhà và giá bán, là mô hình chính của Bài tập thực hành 4.
 
-Trong dự án, MLP được cài đặt thủ công bằng NumPy: phép tính forward,
-gradient backpropagation và cập nhật Adam được viết trong class, không
-dùng `sklearn.MLPRegressor`, TensorFlow hoặc Keras để huấn luyện.
-Xem [adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md).
+Trong dự án, MLP có ba bản cài đặt cùng kiến trúc 32-16-1: bản
+PyTorch chính thức (`mlp_torch.py`, dùng autograd và `torch.optim`),
+bản NumPy legacy (`mlp.py`, forward/backward/Adam viết tay bằng
+NumPy, giữ làm đối chiếu) và bản PyTorch viết tay mang tính giáo dục
+(`mlp_torch_manual.py`, forward/backward/Adam viết tay bằng tensor
+torch, không dùng autograd). Không dùng `sklearn.MLPRegressor`,
+TensorFlow hoặc Keras để huấn luyện. Xem
+[adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md),
+[adr/008-mlp-pytorch.md](../adr/008-mlp-pytorch.md) và
+[adr/009-mlp-pytorch-manual.md](../adr/009-mlp-pytorch-manual.md).
 
 Ngoài bản NumPy, MLP còn có bản PyTorch trong
 `src/house_price/models/mlp_torch.py` (class `MLPTorchRegressorModel`),
@@ -288,6 +294,54 @@ tầng Linear và bias 0, giống bản NumPy (phân phối chuẩn
 `N(0, sqrt(2/fan_in))`). Test trong `tests/test_mlp_torch.py` kiểm
 tra kiến trúc, loss giảm khi train, R2 trên dữ liệu synthetic, lưu/nạp
 cho cùng dự đoán và lặp lại được với cùng seed.
+
+### Bản PyTorch viết tay (MLPTorchManualModel, giáo dục)
+
+File: `src/house_price/models/mlp_torch_manual.py`. Bản này dùng
+tensor torch cho mọi phép tính nhưng KHÔNG dùng autograd và KHÔNG
+dùng optimizer có sẵn: forward, backward và Adam đều viết tay.
+Xem [adr/009-mlp-pytorch-manual.md](../adr/009-mlp-pytorch-manual.md).
+
+| Thành phần | Vai trò |
+|---|---|
+| `mse_loss(y_pred, y_true)` | MSE viết tay: trung bình bình phương sai số trên batch |
+| `__init__(...)` | Lưu cấu hình, kể cả `beta1`/`beta2`/`epsilon` của Adam viết tay |
+| `build_model(input_size)` | Khởi tạo weights He (`torch.randn * sqrt(2/fan_in)`), bias 0, moment Adam bằng 0; mọi tham số `requires_grad=False` |
+| `_forward(X)` | Forward tay qua Dense/ReLU/Linear, trả dự đoán kèm cache (activations, pre-activations) |
+| `_backward(y_true, y_pred, cache)` | Gradient tay bằng chain rule: delta đầu ra `(2/n)(y_pred - y)` rồi truyền ngược qua đạo hàm ReLU (đạo hàm bằng 0 tại 0) |
+| `_adam_update(grad_W, grad_b)` | Adam viết tay: moment m, v, hiệu chỉnh độ lệch, cập nhật trực tiếp dưới `torch.no_grad()` |
+| `fit(X_train, y_train, X_val=None, y_val=None)` | Vòng lặp: DataLoader nạp batch -> `_forward` -> `_backward` -> `_adam_update`; ghi loss/val_loss, tự lưu checkpoint |
+| `save(path=None)` / `load(path)` | Lưu/nạp trực tiếp danh sách tensor `weights`/`biases` (không dùng `state_dict`, vì bản này không có `nn.Module`) |
+
+Công thức dùng trong `_backward` giống hệt mục 4 ở trên
+(`δ⁽³⁾ = (2/B)(ŷ - y)`, `dW⁽ˡ⁾ = (A⁽ˡ⁻¹⁾)ᵀ δ⁽ˡ⁾`,
+`db⁽ˡ⁾` là tổng `δ⁽ˡ⁾` theo batch), chỉ khác kiểu dữ liệu: tensor
+torch float32 thay cho mảng NumPy float64. Kiểm chứng:
+gradient check so với finite difference cho sai số tương đối tối đa
+1,739e-03 (mạng 3 -> 4 -> 1), lớn hơn bản NumPy (1,7e-08) vì
+float32 làm tròn nhiều hơn float64; học ánh xạ tuyến tính trên dữ
+liệu synthetic đạt R2 0,9834 (xem
+`tests/test_mlp_torch_manual.py`). Test
+`test_manual_training_path_uses_no_autograd` quét source để khóa
+việc không gọi `backward()`, `autograd.grad` hay `torch.optim`
+trong training path.
+
+### Bảng phân biệt 3 bản MLP
+
+| Tiêu chí | PyTorch chính thức | NumPy legacy | PyTorch viết tay (giáo dục) |
+|---|---|---|---|
+| File | `models/mlp_torch.py` | `models/mlp.py` | `models/mlp_torch_manual.py` |
+| Class | `MLPTorchRegressorModel` | `MLPRegressorModel` | `MLPTorchManualModel` |
+| Kiểu số | Tensor torch float32 | Mảng NumPy float64 | Tensor torch float32 |
+| Định nghĩa mạng | `nn.Module` (`_MLPNetwork`, `nn.Sequential`) | Danh sách weights/biases NumPy | Danh sách tensor weights/biases |
+| Forward | `forward()` của `nn.Module` | `_forward` viết tay | `_forward` viết tay |
+| Gradient | autograd (`loss.backward()`) | `_backward` viết tay (chain rule) | `_backward` viết tay (chain rule) |
+| Optimizer | `torch.optim.Adam` | `_adam_update` viết tay | `_adam_update` viết tay |
+| Nạp batch | `TensorDataset` + `DataLoader` | Xáo trộn NumPy, cắt batch tay | `TensorDataset` + `DataLoader` |
+| Lưu tham số | `state_dict` trong `.pt` | JSON | Danh sách tensor trong `.pt` |
+| Trong benchmark chính thức | Có (mô hình MLP duy nhất) | Không (chạy kèm `--include-numpy-mlp`) | Không (không có trong `train_evaluate.py`) |
+| Gradient check | Không có (autograd tự lo) | 1,7e-08 | 1,739e-03 (float32) |
+| Vai trò | Mô hình dùng thật | Đối chiếu lịch sử | Học và vấn đáp về backprop/Adam |
 
 ## 7. Siêu tham số
 

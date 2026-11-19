@@ -7,7 +7,7 @@
 | `data/kc_house_data_NaN/data_raw/` | Dữ liệu King County gốc, không sửa |
 | `data/processed/` | Dữ liệu sinh ra khi chạy (gitignored) |
 | `src/house_price/preprocessing.py` | Nạp dữ liệu, chia tập, chống rò rỉ dữ liệu |
-| `src/house_price/models/` | Lớp mô hình theo mẫu 4 phương thức, được cài đặt bằng thư viện NumPy |
+| `src/house_price/models/` | Lớp mô hình theo mẫu 4 phương thức: MLP chính thức dùng PyTorch, 3 mô hình còn lại được cài đặt bằng thư viện NumPy |
 | `src/house_price/evaluation.py` | MSE, RMSE, MAE, R2, MAPE |
 | `src/house_price/visualization.py` | Biểu đồ đánh giá và so sánh |
 | `src/house_price/model_comparison.py` | Bảng đối chiếu 4 mô hình |
@@ -34,7 +34,7 @@ CSV gốc (21.613 dòng, 22 cột)
   -> chia train/validation/test 70/15/15 theo nhóm id (seed 42)
   -> ColumnTransformer fit chỉ trên train: số bù median + StandardScaler,
      zipcode bù mode + one-hot (70 mã) -> 88 cột đầu ra
-  -> 4 mô hình huấn luyện trên train, chọn trên validation
+  -> 4 mô hình chính thức huấn luyện trên train, chọn trên validation
   -> đánh giá cuối cùng trên test, vẽ biểu đồ, lưu outputs/
 ```
 
@@ -71,12 +71,14 @@ validation, test và nhà mới. Xem
 
 ### Mô hình (`models/`)
 
-Cả 4 mô hình đều được cài đặt bằng thư viện NumPy, không dùng estimator có sẵn của
+MLP chính thức dùng PyTorch (`MLPTorchRegressorModel`, xem
+`adr/008-mlp-pytorch.md`); Linear, Decision Tree và Random Forest
+được cài đặt bằng thư viện NumPy, không dùng estimator có sẵn của
 scikit-learn (xem `adr/007-mo-hinh-numpy.md`). scikit-learn chỉ dùng
 cho tiền xử lý và metrics. Mỗi class tuân theo cùng mẫu:
 
 ```python
-model = MLPRegressorModel()
+model = MLPTorchRegressorModel()
 model.build_model(input_size=X_train.shape[1])  # riêng MLP cần input_size
 model.fit(X_train, y_train, X_val=X_val, y_val=y_val)
 y_pred = model.predict(X_test)
@@ -96,11 +98,26 @@ khác với phương thức `__init__()` của class.
 
 Hợp đồng riêng từng mô hình:
 
-- `MLPRegressorModel` (`models/mlp.py`): Dense(32, ReLU) ->
-  Dense(16, ReLU) -> Dense(1, Linear), He init, Adam có bias-correction,
-  mini-batch + shuffle. `fit(X_train, y_train, X_val=None, y_val=None)`
-  theo dõi `history_` gồm `loss` và `val_loss`; sau fit tự lưu tham số
-  JSON vào `save_path` (mặc định `outputs/mlp_parameters.json`).
+- `MLPTorchRegressorModel` (`models/mlp_torch.py`): MLP chính thức
+  dùng PyTorch, Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1,
+  Linear), He init dạng chuẩn, DataLoader batch 32, MSELoss, Adam
+  (autograd), lr 0.001, epochs 100. `fit(X_train, y_train, X_val=None,
+  y_val=None)` theo dõi `history_` gồm `loss` và `val_loss`; sau fit
+  tự lưu state_dict vào `save_path` (mặc định
+  `outputs/mlp_torch_parameters.pt`); `load(path)` nạp bằng
+  `torch.load(..., map_location="cpu", weights_only=True)`.
+- `MLPRegressorModel` (`models/mlp.py`): bản NumPy legacy, cùng kiến
+  trúc và cấu hình, forward/backward/Adam viết tay bằng NumPy.
+  Ngoài bảng benchmark chính thức; chỉ chạy kèm bằng cờ
+  `--include-numpy-mlp`, lưu JSON vào
+  `outputs/mlp_parameters.json`.
+- `MLPTorchManualModel` (`models/mlp_torch_manual.py`): bản PyTorch
+  viết tay mang tính giáo dục, cùng kiến trúc và cấu hình; forward/
+  backward/Adam viết tay bằng tensor torch float32,
+  `requires_grad=False`, không dùng autograd hay `torch.optim`.
+  Không nằm trong benchmark và không có trong `train_evaluate.py`;
+  lưu danh sách tensor weights/biases vào
+  `outputs/mlp_torch_manual_parameters.pt`.
 - `LinearRegressorModel` (`models/linear_regression.py`): batch gradient
   descent được cài đặt bằng thư viện NumPy, `learning_rate=0.1`, `max_epochs=1000`, `tol=1e-6`
   tương đối. `coef_`, `intercept_`, `history_`, `n_iter_`,
@@ -131,16 +148,17 @@ Hợp đồng riêng từng mô hình:
 
 ### Điều phối (`train_evaluate.py`)
 
-- `main(argv=None)` chạy: nạp dữ liệu -> chia tập -> build 4 mô hình ->
-  train -> predict -> đánh giá -> so sánh -> lưu metric, dự đoán,
-  biểu đồ và `outputs/mlp_parameters.json`. Nhận tham số dòng lệnh
-  `--data` (đường dẫn CSV), `--output-dir` và `--evaluation-split`
-  (`val` mặc định, ghi `outputs/metrics_val.csv`,
-  `outputs/predictions_val.csv`, biểu đồ hậu tố `_val`; `test` cho
-  đánh giá cuối, ghi `outputs/metrics.csv`, `outputs/predictions.csv`,
-  biểu đồ không hậu tố).
-- `build_models(output_dir)` tạo 4 mô hình; MLP lưu tham số vào
-  `output_dir/mlp_parameters.json`.
+- `main(argv=None)` chạy: nạp dữ liệu -> chia tập -> build 4 mô hình
+  chính thức -> train -> predict -> đánh giá -> so sánh -> lưu metric,
+  dự đoán, biểu đồ và `outputs/mlp_torch_parameters.pt`. Nhận tham số
+  dòng lệnh `--data` (đường dẫn CSV), `--output-dir`,
+  `--evaluation-split` (`val` mặc định, ghi
+  `outputs/metrics_val.csv`, `outputs/predictions_val.csv`, biểu đồ
+  hậu tố `_val`; `test` cho đánh giá cuối, ghi `outputs/metrics.csv`,
+  `outputs/predictions.csv`, biểu đồ không hậu tố) và
+  `--include-numpy-mlp` (thêm bản NumPy MLP ngoài bảng chính thức).
+- `build_models(output_dir)` tạo 4 mô hình chính thức; PyTorch MLP
+  lưu tham số vào `output_dir/mlp_torch_parameters.pt`.
 - `train_and_evaluate(data, output_dir, evaluation_split="val")` fit MLP với `X_val`/`y_val`
   (nếu `prepare_data` không trả validation thì tách 15% từ train),
   3 mô hình còn lại fit trên train; vẽ `actual_vs_predicted_<slug>.png`
@@ -158,5 +176,8 @@ Hợp đồng riêng từng mô hình:
   `src/`), chỉ sắp xếp lại bên trong `src/` và bổ sung thư mục thiếu.
 - **Notebook chỉ demo:** logic dùng lại nằm trong `src/`, notebook gọi
   module đó để demo và thí nghiệm, không viết class riêng trong notebook.
-- **Mọi mô hình được cài đặt bằng thư viện NumPy** (xem `adr/007-mo-hinh-numpy.md`,
-  thay thế ADR-004).
+- **MLP chính thức dùng PyTorch, 3 mô hình còn lại được cài đặt bằng
+  thư viện NumPy** (xem `adr/008-mlp-pytorch.md` và
+  `adr/007-mo-hinh-numpy.md`, thay thế ADR-004). Bản NumPy MLP giữ
+  làm đối chiếu legacy, bản PyTorch viết tay chỉ phục vụ học backprop
+  (xem `adr/009-mlp-pytorch-manual.md`).

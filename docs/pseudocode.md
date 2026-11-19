@@ -4,10 +4,14 @@ Quy ước: chỉ số bắt đầu từ 0. Mã giả trình bày vòng lặp t�
 code Python có thể gộp một số vòng lặp thành phép tính mảng.
 Mỗi mô hình tuân theo: INIT -> BUILD_MODEL -> FIT -> PREDICT.
 Chi tiết toán học và giải thích đầy đủ xem `docs/algorithms/`.
-Cả 4 mô hình đều được cài đặt bằng thư viện NumPy, không dùng estimator có sẵn
-của scikit-learn (xem `docs/adr/007-mo-hinh-numpy.md`).
+Linear, Decision Tree và Random Forest được cài đặt bằng thư viện
+NumPy, không dùng estimator có sẵn của scikit-learn (xem
+`docs/adr/007-mo-hinh-numpy.md`); MLP chính thức dùng PyTorch (xem
+`docs/adr/008-mlp-pytorch.md`), bản NumPy MLP chỉ giữ làm đối chiếu
+legacy, bản PyTorch viết tay chỉ phục vụ học backprop (xem
+`docs/adr/009-mlp-pytorch-manual.md`).
 
-## Quy trình chung (4 mô hình)
+## Quy trình chung (4 mô hình chính thức)
 
 ```text
 ĐẦU VÀO: tập dữ liệu King County, 19 cột đầu vào X (18 số + zipcode,
@@ -19,13 +23,18 @@ của scikit-learn (xem `docs/adr/007-mo-hinh-numpy.md`).
 2. Tách X, y; chia train/validation/test 70/15/15 theo nhóm id, seed 42
 3. ColumnTransformer: fit trên train (số: median + StandardScaler;
    zipcode: mode + one-hot), transform val/test
-4. Với mỗi mô hình: build_model -> fit(train) -> predict(test)
-   (riêng MLP: build_model(input_size) rồi fit(train, val))
+4. Với mỗi mô hình chính thức: build_model -> fit(train) -> predict(test)
+   (riêng PyTorch MLP: build_model(input_size) rồi fit(train, val))
+   Bản NumPy MLP chỉ chạy kèm bằng cờ `--include-numpy-mlp`.
 5. Tính MSE, RMSE, MAE, R2 cho từng mô hình trên cùng tập test
 6. So sánh và vẽ biểu đồ Actual vs Predicted
 ```
 
-## MLP Regression
+## MLP Regression (bản NumPy legacy, ngoài bảng chính thức)
+
+Mã giả dưới đây khớp với `MLPRegressorModel` trong
+`src/house_price/models/mlp.py`. Bản này chỉ chạy kèm bằng cờ
+`--include-numpy-mlp` để đối chiếu với các lần chạy cũ.
 
 ```text
 ĐẦU VÀO: X_train (N x 88), y_train, X_val, y_val,
@@ -61,6 +70,57 @@ HÀM PREDICT(X):
     NẾU model chưa fit: BÁO LỖI, DỪNG
     TRẢ VỀ forward propagation cho từng dòng X
 ```
+
+## PyTorch MLP Regression (bản chính thức, 6 bước của cô giáo)
+
+```text
+ĐẦU VÀO: X_train (N x 88), y_train, X_val, y_val,
+         hidden (32, 16), epochs 100, batch 32,
+         learning_rate 0.001, random_state 42
+ĐẦU RA: y_pred; history_ (loss và val_loss từng epoch);
+        tham số lưu vào outputs/mlp_torch_parameters.pt (state_dict)
+
+THỦ TỤC INIT(hidden_layer_sizes, learning_rate, epochs, batch_size,
+             random_state, save_path):
+    lưu cấu hình; network <- RỖNG
+
+THỦ TỤC BUILD_MODEL(input_size):                    # bước 2
+    seed NumPy/Python/torch bằng random_state
+    network <- _MLPNetwork(input_size, (32, 16)):
+        Linear(88, 32) -> ReLU -> Linear(32, 16) -> ReLU -> Linear(16, 1)
+        mọi Linear: He init dạng chuẩn, bias 0
+
+THỦ TỤC FIT(X_train, y_train, X_val=None, y_val=None):
+    NẾU model chưa build: BÁO LỖI, DỪNG
+    dataset <- TensorDataset(X float32, y float32)  # bước 1
+    loader <- DataLoader(dataset, batch 32, shuffle=True,
+                         generator có seed cố định)
+    criterion <- nn.MSELoss()                       # bước 3
+    optimizer <- torch.optim.Adam(network.parameters(), lr 0.001)
+    Với mỗi epoch:                                  # bước 4
+        network.train()
+        Với mỗi (X_batch, y_batch) trong loader:
+            optimizer.zero_grad()                   # xóa gradient cũ
+            y_pred <- network(X_batch)              # forward
+            loss <- criterion(y_pred, y_batch)      # MSE
+            loss.backward()                         # autograd: chain rule
+            optimizer.step()                        # cập nhật tham số
+        tính MSE trên toàn bộ train, ghi history_["loss"]
+        NẾU có validation: chỉ forward trên validation,
+            ghi MSE vào history_["val_loss"]        # bước 5
+    tự lưu state_dict + cấu hình + history ra .pt  # bước 6
+
+HÀM PREDICT(X):
+    NẾU model chưa fit: BÁO LỖI, DỪNG
+    network.eval(); với torch.no_grad(): TRẢ VỀ network(X) dạng NumPy
+```
+
+Bản PyTorch viết tay (`MLPTorchManualModel`,
+`src/house_price/models/mlp_torch_manual.py`) thay bước 4 bằng
+`_forward` -> `_backward` (chain rule viết tay) -> `_adam_update`
+viết tay, tham số `requires_grad=False`, không gọi `backward()`
+hay dùng `torch.optim`; còn lại (DataLoader, validation, lưu/nạp)
+giữ nguyên vai trò. Bản này không nằm trong benchmark chính thức.
 
 ## Linear Regression
 
