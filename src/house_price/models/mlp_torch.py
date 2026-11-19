@@ -230,7 +230,7 @@ class MLPTorchRegressorModel(BaseRegressorModel):
     def load(cls, path: str | Path) -> MLPTorchRegressorModel:
         """Nạp mô hình đã lưu (bước 6: Load)."""
         # Checkpoint do chính project lưu, không phải file ngoài không rõ nguồn.
-        checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
         model = cls(
             hidden_layer_sizes=tuple(checkpoint["hidden_layer_sizes"]),
             learning_rate=checkpoint["learning_rate"],
