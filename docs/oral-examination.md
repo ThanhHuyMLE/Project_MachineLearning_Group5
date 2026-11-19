@@ -524,6 +524,13 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    đã dùng." Sai: phải phân biệt rõ đã implement với chỉ đề xuất;
    giảng viên hỏi code của Dropout ở đâu thì không có code để chỉ.
 
+### C13. Vanishing Gradient và Exploding Gradient là gì? Vì sao xảy ra và khắc phục thế nào?
+
+1. **Đáp ngắn:** Vanishing Gradient là gradient co dần về 0 khi lan ngược qua các tầng, tầng đầu hầu như không học được gì; Exploding Gradient là ngược lại, gradient phình to đến mức trọng số nhảy loạn và loss thành NaN. Cả hai đều do quy tắc dây chuyền (chain rule) nhân nhiều đạo hàm với nhau qua nhiều tầng: nhân nhiều số nhỏ hơn 1 thì về 0, nhân nhiều số lớn hơn 1 thì bùng nổ.
+2. **Giải thích sâu:** Khi backprop, gradient ở tầng `l` bằng tích các đạo hàm của mọi tầng sau nó. Với Sigmoid, đạo hàm tối đa chỉ 0,25 nên qua 10 tầng gradient đã co khoảng `0,25^10`, tức tầng đầu gần như đứng yên dù tầng cuối vẫn học tốt; thêm nữa Sigmoid bão hòa ở hai đầu làm đạo hàm càng gần 0. Ngược lại, nếu trọng số khởi tạo quá lớn thì tích này lớn dần theo từng tầng và gradient nổ. Trong dự án này rủi ro thực tế thấp vì mạng nông (chỉ 2 tầng ẩn) và đã dùng đúng 3 cách khắc phục: ReLU có đạo hàm bằng 1 ở phía dương nên không co gradient như Sigmoid (xem C3); khởi tạo He `N(0, sqrt(2/fan_in))` giữ phương sai tín hiệu ổn định qua các tầng ReLU (xem C9); Adam tự co bước cập nhật theo độ lớn gradient nên gradient lớn bất thường cũng không làm trọng số nhảy quá xa. Nếu mạng sâu hơn thì cần thêm Batch Normalization, gradient clipping (cắt gradient vượt ngưỡng), hoặc residual connection.
+3. **Tham chiếu source:** `src/house_price/models/mlp.py`, `MLPRegressorModel._relu`, `_relu_derivative`, `build_model` (khởi tạo He), `_backward` (nhân đạo hàm theo chain rule); `tests/test_mlp_gradient.py` (đối chiếu gradient backprop với gradient số, chứng tỏ gradient tính đúng và không bị co/nổ bất thường ở độ sâu này); lịch sử `val_loss` theo epoch (xem D4) cho thấy loss giảm đều, không có dấu hiệu tầng đầu đứng yên hay loss vọt lên NaN.
+4. **Hiểu lầm thường gặp:** "Vanishing Gradient nghĩa là mô hình không học được gì nữa." Sai: chỉ các tầng đầu học rất chậm, tầng cuối vẫn học bình thường, nên triệu chứng là loss giảm chậm dần rồi chững lại chứ không phải đứng yên hoàn toàn. "Càng nhiều tầng càng tốt." Sai: thêm tầng mà không có ReLU, khởi tạo đúng và chuẩn hóa thì chỉ làm gradient càng dễ biến mất hoặc bùng nổ, mô hình sâu hơn có thể tệ hơn mô hình nông.
+
 ---
 
 ## D. Stage 03: Model Training & Evaluation
