@@ -1155,6 +1155,103 @@ viết tay chỉ dùng để đối chiếu và học cơ chế (xem câu G12).
    nên bảng cũ vẫn là chính thức" cũng sai: bảng chính thức là
    bảng 19/11 với 4 mô hình; bảng 17/11 chỉ còn giá trị đối chiếu.
 
+### G13. Vì sao bản manual đặt requires_grad=False?
+
+1. **Đáp ngắn:** Để chứng minh training path không đi qua autograd:
+   tham số không ghi đồ thị tính toán nên không có gradient tự động
+   nào được tạo ra; mọi gradient đều do `_backward` tính tay.
+2. **Giải thích sâu:** Khi `requires_grad=False`, mọi phép tính trên
+   tensor tham số không tạo `grad_fn`, nên loss tính từ chúng cũng
+   không có đồ thị; gọi `loss.backward()` trên loss đó sẽ lỗi vì
+   không có gì để vi phân. Nhờ đó test
+   `test_manual_training_path_uses_no_autograd` có thể quét source
+   và khóa việc gọi `backward()`, `autograd.grad` hay `torch.optim`
+   trong training path: nếu code vô tình gọi autograd thì test fail
+   ngay. Riêng `@torch.no_grad()` trong `_adam_update` chỉ tạm tắt
+   việc ghi đồ thị trong khối cập nhật, còn `requires_grad=False`
+   trên tham số mới là thứ bảo đảm ngay từ forward đã không có đồ
+   thị nào tồn tại. Ngoài ra, không ghi đồ thị còn tiết kiệm bộ nhớ
+   trong lúc huấn luyện. Lưu ý: `requires_grad=False` không làm mất
+   khả năng tính toán, vì forward/backward tay chỉ cần phép tính số
+   học trên tensor, không cần đồ thị.
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch_manual.py`,
+   `build_model` (`requires_grad_(False)`), `_adam_update`
+   (`@torch.no_grad()`); `tests/test_mlp_torch_manual.py`
+   (`test_manual_training_path_uses_no_autograd`,
+   `test_manual_parameters_shape_dtype_device_and_no_grad`).
+4. **Hiểu lầm thường gặp:** "`requires_grad=False` chỉ là tối ưu
+   tốc độ." Sai: ở đây nó là một phần của thiết kế chứng minh, tắt
+   autograd ngay từ tham số chứ không chỉ tiết kiệm bộ nhớ. Và
+   "đặt `requires_grad=False` thì tensor không học được" cũng sai:
+   tensor vẫn cập nhật được bằng phép gán tay trong `_adam_update`.
+
+### G14. Vì sao validation không được cập nhật weights?
+
+1. **Đáp ngắn:** Vì code chỉ dùng validation để đo, không để học:
+   validation chỉ đi qua `_mse` (forward thuần túy, không backward,
+   không bước cập nhật) nên weights không đổi sau khi đo validation.
+2. **Giải thích sâu:** Trong `fit` của cả hai bản PyTorch, sau mỗi
+   epoch code gọi `_mse(X_val, y_val)`; `_mse` được trang trí
+   `@torch.no_grad()` (bản chính thức gọi thêm `eval()`, bản manual
+   không có `nn.Module` nên không có `eval()`), chỉ forward rồi trả
+   về một số float; không có `loss.backward()` hay
+   `optimizer.step()`/`_adam_update` nào nhận dữ liệu validation.
+   Điều này đúng cả khi `fit` không nhận validation (lúc đó
+   `history_` chỉ có `loss`). Về phương pháp: validation dùng để
+   theo dõi và chọn cấu hình; nếu cập nhật weights trên validation
+   thì validation trở thành một phần của train, điểm validation sẽ
+   lạc quan giả và mất vai trò chọn mô hình; test là tập duy nhất
+   chỉ đo một lần cuối (xem câu A5, A6 và G12). Lưu ý: Linear,
+   Decision Tree và Random Forest trong `train_and_evaluate` chỉ
+   nhận `X_train`/`y_train` nên validation càng không lấn vào quá
+   trình fit của ba mô hình này.
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch.py`,
+   `fit` (bước 5) và `_mse`; `src/house_price/models/mlp_torch_manual.py`,
+   `fit` và `_mse`; `src/house_price/train_evaluate.py`,
+   `train_and_evaluate` (docstring: Linear/DT/RF chỉ nhận
+   `X_train`/`y_train`).
+4. **Hiểu lầm thường gặp:** "Tính `val_loss` mỗi epoch là đã học
+   trên validation." Sai: đo loss khác cập nhật weights; chỉ
+   backward cộng bước cập nhật mới đổi weights. Và "cho validation
+   vào fit thì mô hình tốt hơn" cũng sai về phương pháp: điểm đo sẽ
+   không còn trung thực.
+
+### G15. Vì sao gradient check float32 sai số lớn hơn float64 nhiều?
+
+1. **Đáp ngắn:** Vì float32 làm tròn nhiều hơn float64, và finite
+   difference trừ hai số gần bằng nhau nên càng khuếch đại sai số
+   làm tròn đó.
+2. **Giải thích sâu:** Epsilon máy (khoảng cách tương đối nhỏ nhất
+   phân biệt được với 1) của float32 là khoảng 1,2e-07, của float64
+   là khoảng 2,2e-16, tức float32 làm tròn thô hơn khoảng 5e8 lần.
+   Gradient số tính bằng finite difference trung tâm
+   `(f(x+h) - f(x-h)) / (2h)` với `h = eps = 1e-3`: tử số là hiệu
+   hai giá trị loss gần bằng nhau, nên sai số tuyệt đối do làm tròn
+   của mỗi lần tính loss bị chia cho `2h = 2e-3`, tức khuếch đại
+   khoảng 500 lần; đồng thời `h` nhỏ cũng làm sai số cắt cụt cỡ
+   `O(h^2)` nhỏ đi, nên với float32 thì sai số làm tròn chiếm ưu
+   thế. Vì vậy gradient check của bản manual (tensor float32) đo
+   được sai số tương đối tối đa 1,739e-03 với eps 1e-3, và test đặt
+   ngưỡng 1e-2: đủ rộng để chứa sai số làm tròn này nhưng vẫn đủ
+   chặt để bắt lỗi đạo hàm thật (thiếu hệ số `2/n` của MSE sẽ lệch
+   cỡ `O(1)`). Bản NumPy dùng float64 nên cùng phép kiểm chứng chỉ
+   lệch khoảng 1,7e-08 với ngưỡng 1e-5. Kiểm chứng float64 trong `tests/test_mlp_torch_manual.py` (mạng 3 -> 4 -> 4 -> 1,
+   41 tham số, eps 1e-3, central difference) đo được sai số tương đối tối đa
+   1,475e-11 và sai số tuyệt đối tối đa 8,517e-13 (ngưỡng 1e-7), nhỏ hơn kết quả
+   float32 (1,739e-03) khoảng 8 bậc.
+3. **Tham chiếu source:** `tests/test_mlp_torch_manual.py`
+   (`GRADIENT_TOLERANCE = 1e-2`, `FINITE_DIFF_EPS = 1e-3`, đo được
+   1,739e-03); `tests/test_mlp_gradient.py` (bản NumPy float64,
+   khoảng 1,7e-08, ngưỡng 1e-5);
+   `src/house_price/models/mlp_torch_manual.py`, `_backward` và
+   `mse_loss`.
+4. **Hiểu lầm thường gặp:** "Sai số 1,739e-03 nghĩa là chain rule
+   viết sai." Sai: sai số này là sai số làm tròn của phép kiểm
+   chứng (finite difference trên float32), không phải lỗi đạo hàm;
+   ngưỡng 1e-2 được chọn đúng vì lý do đó. Và "giảm eps của finite
+   difference sẽ luôn chính xác hơn" cũng sai: eps càng nhỏ thì sai
+   số cắt cụt càng nhỏ nhưng sai số làm tròn do phép trừ càng lớn.
+
 ---
 
 ## H. Bảng mapping slide-to-source (6 bước của cô giáo)
@@ -1197,6 +1294,9 @@ thì mở mục G tương ứng.
 | train() vs eval(), no_grad()? | `train()`/`eval()` đổi chế độ (Dropout/BatchNorm); mạng này không có nên không đổi số, vẫn gọi cho đúng. `no_grad()` tắt ghi đồ thị khi đánh giá/dự đoán. (G10) |
 | state_dict là gì? | Dict tên tầng -> tensor tham số; `torch.save` ghi ra `.pt`, `load` phải build lại mạng rồi `load_state_dict`; luôn `map_location="cpu"`. (G11) |
 | Cái nào mới là manual thật? | Tự viết đạo hàm chain rule và Adam mới là manual; PyTorch cung cấp tensor, autograd, optimizer, DataLoader. Bản viết tay viết cả hai, bản chính thức để PyTorch làm. (G12) |
+| Vì sao bản manual đặt requires_grad=False? | Để training không qua autograd: tham số không ghi đồ thị nên backward() không có gì để vi phân; mọi gradient đều tính tay. (G13) |
+| Vì sao validation không cập nhật weights? | Validation chỉ đi qua _mse (forward + no_grad), không backward, không bước cập nhật; nó chỉ để theo dõi và chọn cấu hình. (G14) |
+| Vì sao gradient check float32 lệch hơn float64? | Epsilon máy float32 lớn hơn float64 khoảng 5e8 lần, finite difference trừ hai số gần bằng nhau nên khuếch đại sai số làm tròn; đo được 1,739e-03 với ngưỡng 1e-2. (G15) |
 | 3 bản MLP khác nhau thế nào? | Cùng kiến trúc 32-16-1; chính thức dùng autograd + Adam của torch, NumPy legacy viết tay bằng NumPy, bản viết tay viết tay bằng tensor torch; chỉ bản chính thức nằm trong benchmark. (G12) |
 | Vì sao tách validation và test? | Validation để chọn mô hình và siêu tham số; test chỉ đo một lần cuối, dùng test để chọn thì điểm lạc quan giả. (A5) |
 | Kết quả chính là gì? | Test 19/11/2026, 3.241 dòng: RF R2 0,8638 tốt nhất, PyTorch MLP 0,8334, Linear 0,8119, DT 0,7314; bản NumPy MLP ngoài bảng (val 0,8310). (G12) |

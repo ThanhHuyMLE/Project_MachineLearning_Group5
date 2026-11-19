@@ -126,8 +126,9 @@ Hợp đồng riêng từng mô hình:
   giá trị riêng biệt liên tiếp. `tree_` là dict lồng nhau;
   `feature_importances_` chuẩn hóa về tổng 1.
 - `RandomForestRegressorModel` (`models/random_forest.py`): bagging trên cây CART, cả hai đều được cài đặt bằng thư viện NumPy. Bootstrap qua `SeedSequence` spawn,
-  mỗi cây một dãy con riêng. `max_features` mặc định `None` (xét mọi
-  đặc trưng tại mỗi lần chia); `n_estimators=100` mặc định.
+  mỗi cây một dãy con riêng. `max_features` mặc định `"sqrt"` (mỗi
+  lần chia lấy mẫu ngẫu nhiên sqrt số đặc trưng);
+  `n_estimators=100` mặc định.
   `predict` trả trung bình dự đoán các cây trong `trees_`.
 - `BaseRegressorModel` (`models/base.py`): lớp cơ sở nhẹ, chỉ quản lý
   trạng thái `_is_built`/`_is_fitted` và báo lỗi khi gọi sai thứ tự.

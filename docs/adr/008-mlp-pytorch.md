@@ -68,6 +68,17 @@ hình còn lại, nên ngoại lệ này chỉ áp dụng cho MLP.
   0,7314), chứng tỏ pipeline không đổi.
 - Test: 109 passed (thêm 8 test cho `MLPTorchRegressorModel` và 1
   trường hợp hợp đồng mới), `ruff check` và `ruff format` sạch.
+
+> Ghi chú lịch sử (bổ sung sau khi viết ADR): các số trong mục Kiểm
+> chứng này là ảnh chụp tại thời điểm viết ADR, ngày 19/11/2026, và
+> được giữ nguyên vì lý do lịch sử; không sửa số 109 thành số test
+> hiện tại. Sau khi thêm các test cho bản PyTorch viết tay (ADR-009),
+> bộ test có 129 test, đều pass trong lần chạy ngày 19/11/2026;
+> con số mới nhất xem báo cáo verify gần nhất và
+> `docs/progress_results.md`. Bảng benchmark chính thức cũng được
+> chốt lại bởi ADR-009: chỉ 4 mô hình (PyTorch MLP + Linear +
+> Decision Tree + Random Forest), bản NumPy MLP đứng ngoài bảng,
+> chỉ chạy kèm bằng cờ `--include-numpy-mlp`.
 - Notebook `notebooks/practice_04_mlp_regression.ipynb` chạy lại
   sạch, metrics trong notebook khớp benchmark CLI.
 

@@ -145,6 +145,10 @@ Không dùng tập test để chọn mô hình hay chỉnh siêu tham số.
   đều được cài đặt bằng thư viện NumPy; MLP dùng PyTorch theo
   yêu cầu của cô giáo (xem [docs/adr/008-mlp-pytorch.md](docs/adr/008-mlp-pytorch.md)).
 
+Môi trường đã kiểm chứng: Ubuntu, Python 3.14.4, torch 2.15.0+cpu
+(môi trường ảo `venv-ml-linux`). CI chạy Python 3.13 (xem
+`.github/workflows/ci.yml`). PyTorch luôn là bản CPU-only.
+
 ## 7. Cài đặt
 
 ```bash
@@ -227,6 +231,11 @@ cài gói trước. Các test kiểm tra hợp đồng module, tiền xử lý, 
 đánh giá, gradient của MLP và tính đúng đắn của từng mô hình (MLP có
 cả bản NumPy và bản PyTorch).
 
+Bộ test có 129 test, đều pass trong lần chạy ngày 19/11/2026 trên
+Ubuntu (`venv-ml-linux`). Con số này là tại thời điểm đó; nếu bộ
+test có thêm test mới thì xem báo cáo verify mới nhất trong
+[docs/progress_results.md](docs/progress_results.md).
+
 ## 10. Kiểm tra phong cách code
 
 ```bash
@@ -265,6 +274,25 @@ model.build_model(input_size=X_train.shape[1])  # pipeline hiện tại: 88
 model.fit(X_train, y_train, X_val=X_val, y_val=y_val)
 y_pred = model.predict(X_test)
 ```
+
+Vai trò của 4 nhóm mô hình trong dự án:
+
+| Nhóm | Công nghệ | Cách tính gradient | Vai trò |
+|---|---|---|---|
+| Standard PyTorch MLP | PyTorch | Autograd (`loss.backward()`) | Workflow và benchmark chính thức của Lab 4 |
+| Manual PyTorch MLP | PyTorch Tensor | Chain rule viết tay | Bằng chứng hiểu thuật toán và để kiểm chứng |
+| NumPy MLP | NumPy | Chain rule viết tay | Đối chiếu legacy mang tính giáo dục |
+| Các mô hình hồi quy còn lại (Linear, Decision Tree, Random Forest) | NumPy | Thuật toán viết tay | Baseline đối chiếu chính thức |
+
+Bản PyTorch viết tay là bằng chứng trung tâm cho thấy nhóm hiểu
+backprop và Adam, không phải file phụ: nó viết tay toàn bộ forward,
+backward theo chain rule và Adam bằng tensor torch
+(`MLPTorchManualModel`). Ngược lại, bản PyTorch chính thức KHÔNG
+phải "hoàn toàn viết tay": nó dùng autograd và `torch.optim.Adam`
+của PyTorch theo yêu cầu của cô giáo cho lab 4. Nếu yêu cầu "viết
+tay" của cô chưa rõ ràng, phân biệt này được ghi rõ ở đây thay vì
+giả định: phần "viết tay" của dự án nằm ở bản manual và các mô hình
+NumPy, còn bản chính thức dùng đúng công cụ PyTorch chuẩn.
 
 | Mô hình | Cài đặt | Siêu tham số mặc định |
 |---|---|---|

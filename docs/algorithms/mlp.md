@@ -26,6 +26,25 @@ seed 42), huấn luyện bằng `torch.nn`, DataLoader, MSELoss, Adam và
 autograd theo đúng 6 bước trong slide của cô giáo; bản NumPy được giữ
 nguyên làm đối chiếu.
 
+Vai trò của 4 nhóm mô hình trong dự án:
+
+| Nhóm | Công nghệ | Cách tính gradient | Vai trò |
+|---|---|---|---|
+| Standard PyTorch MLP | PyTorch | Autograd (`loss.backward()`) | Workflow và benchmark chính thức của Lab 4 |
+| Manual PyTorch MLP | PyTorch Tensor | Chain rule viết tay | Bằng chứng hiểu thuật toán và để kiểm chứng |
+| NumPy MLP | NumPy | Chain rule viết tay | Đối chiếu legacy mang tính giáo dục |
+| Các mô hình hồi quy còn lại (Linear, Decision Tree, Random Forest) | NumPy | Thuật toán viết tay | Baseline đối chiếu chính thức |
+
+Bản PyTorch viết tay là bằng chứng trung tâm cho thấy nhóm hiểu
+backprop và Adam, không phải file phụ: nó viết tay toàn bộ forward,
+backward theo chain rule và Adam bằng tensor torch
+(`MLPTorchManualModel`). Ngược lại, bản PyTorch chính thức KHÔNG
+phải "hoàn toàn viết tay": nó dùng autograd và `torch.optim.Adam`
+của PyTorch theo yêu cầu của cô giáo cho lab 4. Nếu yêu cầu "viết
+tay" của cô chưa rõ ràng, phân biệt này được ghi rõ ở đây thay vì
+giả định: phần "viết tay" của dự án nằm ở bản manual và các mô hình
+NumPy, còn bản chính thức dùng đúng công cụ PyTorch chuẩn.
+
 Kiến trúc mặc định:
 
 ```text
@@ -403,8 +422,9 @@ mô hình. Không chọn cấu hình theo kết quả test.
 
 ## 10. Kết quả thực nghiệm
 
-Kết quả trên tập test (3.241 dòng, pipeline chuẩn 88 đặc trưng),
-Stage 03, xem [progress_results.md](../progress_results.md):
+Kết quả của bản NumPy legacy trên tập test (3.241 dòng, pipeline
+chuẩn 88 đặc trưng), Stage 03, là số lịch sử ngày 17/11/2026, xem
+[progress_results.md](../progress_results.md):
 
 | Chỉ số | Kết quả |
 |---|---:|

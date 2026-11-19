@@ -18,6 +18,19 @@ chạy cả hai bản cạnh nhau; cần chốt rõ bảng chính thức chỉ c
 (PyTorch MLP + Linear + Decision Tree + Random Forest) và bản NumPy
 MLP đứng ngoài bảng, chỉ chạy kèm để đối chiếu.
 
+Vai trò của 4 nhóm mô hình, chốt trong ADR này:
+
+| Nhóm | Công nghệ | Cách tính gradient | Vai trò |
+|---|---|---|---|
+| Standard PyTorch MLP | PyTorch | Autograd (`loss.backward()`) | Workflow và benchmark chính thức của Lab 4 |
+| Manual PyTorch MLP | PyTorch Tensor | Chain rule viết tay | Bằng chứng hiểu thuật toán và để kiểm chứng |
+| NumPy MLP | NumPy | Chain rule viết tay | Đối chiếu legacy mang tính giáo dục |
+| Các mô hình hồi quy còn lại (Linear, Decision Tree, Random Forest) | NumPy | Thuật toán viết tay | Baseline đối chiếu chính thức |
+
+Bản manual là bằng chứng trung tâm cho thấy nhóm hiểu backprop và
+Adam, không phải file phụ; bản PyTorch chính thức không phải "hoàn
+toàn viết tay" vì nó dùng autograd và `torch.optim.Adam` của PyTorch.
+
 ## Các lựa chọn đã xem xét
 
 1. **Thêm bản PyTorch viết tay làm bản giáo dục, không đưa vào
