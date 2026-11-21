@@ -65,7 +65,7 @@ Mã giả dưới đây khớp với `fit` và `predict` trong
 ```text
 ĐẦU VÀO: X_train (N x 88), y_train, n_estimators = 100,
          max_depth, min_samples_split = 2, min_samples_leaf = 1,
-         max_features (mặc định: xét mọi đặc trưng),
+         max_features (mặc định: "sqrt"),
          random_state = 42
 ĐẦU RA: y_pred; rừng lưu trong trees_ (danh sách cây)
 
@@ -116,17 +116,16 @@ Xem [adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md).
 
 | Phương thức | Công việc |
 |---|---|
-| `__init__(n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1, max_features=None, random_state=42)` | Lưu cấu hình, chưa có rừng |
+| `__init__(n_estimators=100, max_depth=None, min_samples_split=2, min_samples_leaf=1, max_features="sqrt", random_state=42)` | Lưu cấu hình, chưa có rừng |
 | `build_model()` | Tạo rừng rỗng, reset trạng thái đã học |
 | `fit(X_train, y_train)` | Huấn luyện `n_estimators` cây, mỗi cây trên một mẫu bootstrap riêng |
 | `predict(X)` | Trung bình dự đoán các cây, báo lỗi nếu chưa fit |
 | `trees_`, `n_features_in_` | Danh sách cây đã học, số đặc trưng lúc fit |
 
-Lưu ý về `max_features`: mặc định trong code là `None`, tức mỗi lần
-chia của từng cây xét mọi đặc trưng (chỉ bootstrap làm các cây khác
-nhau). Muốn bật lấy mẫu đặc trưng theo từng lần chia thì truyền
-`max_features="sqrt"` (mỗi lần chia lấy mẫu ngẫu nhiên
-`sqrt(n_features)` đặc trưng), hoặc int/float theo quy ước của cây
+Lưu ý về `max_features`: mặc định trong code là `"sqrt"`, tức mỗi lần
+chia của từng cây lấy mẫu ngẫu nhiên `sqrt(n_features)` đặc trưng.
+Muốn xét mọi đặc trưng tại mỗi lần chia thì truyền `max_features=None`
+(chỉ bootstrap làm các cây khác nhau), hoặc int/float theo quy ước của cây
 quyết định. Giá trị mặc định này khác với quy ước của scikit-learn
 (mặc định 1.0, tức mọi đặc trưng, đối với hồi quy); khi so sánh với
 tài liệu bên ngoài cần ghi rõ mặc định đang dùng trong repo.
@@ -139,7 +138,7 @@ tài liệu bên ngoài cần ghi rõ mặc định đang dùng trong repo.
 | `max_depth` | None | Giới hạn độ sâu của từng cây, truyền thẳng sang cây quyết định |
 | `min_samples_split` | 2 | Truyền thẳng sang cây quyết định |
 | `min_samples_leaf` | 1 | Truyền thẳng sang cây quyết định |
-| `max_features` | None | Số đặc trưng xét tại mỗi lần chia của từng cây (xem mục 6) |
+| `max_features` | "sqrt" | Số đặc trưng xét tại mỗi lần chia của từng cây (xem mục 6) |
 | `random_state` | 42 | Hạt giống điều khiển toàn bộ tính ngẫu nhiên của rừng |
 
 ## 8. Dữ liệu sử dụng

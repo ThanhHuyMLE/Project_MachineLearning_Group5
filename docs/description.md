@@ -29,11 +29,17 @@ Dữ liệu: King County House Sales, 21.613 giao dịch từ tháng 5/2014
 ## Phạm vi
 
 - Chỉ làm bài toán Hồi quy giá nhà King County, theo đề Bài tập thực hành 4.
-- Cả 4 mô hình đều được cài đặt bằng thư viện NumPy theo quy tắc
-  của nhóm (xem [adr/007-mo-hinh-numpy.md](adr/007-mo-hinh-numpy.md)):
-  không dùng class mô hình của scikit-learn, không dùng TensorFlow/Keras.
+- MLP chính thức dùng PyTorch theo yêu cầu của cô giáo cho lab 4
+  (xem [adr/008-mlp-pytorch.md](adr/008-mlp-pytorch.md)); Linear
+  Regression, Decision Tree và Random Forest được cài đặt bằng thư
+  viện NumPy theo quy tắc của nhóm (xem
+  [adr/007-mo-hinh-numpy.md](adr/007-mo-hinh-numpy.md)): không dùng
+  class mô hình của scikit-learn, không dùng TensorFlow/Keras.
   NumPy chỉ được dùng cho phép tính mảng; không dùng thư viện để triển
-  khai MLP, Backpropagation, optimizer, cây CART hay bagging.
+  khai MLP, Backpropagation, optimizer, cây CART hay bagging. Bản
+  NumPy MLP chỉ giữ làm đối chiếu legacy (ngoài bảng benchmark chính
+  thức); bản PyTorch viết tay chỉ phục vụ học backprop và vấn đáp
+  (xem [adr/009-mlp-pytorch-manual.md](adr/009-mlp-pytorch-manual.md)).
 - scikit-learn chỉ dùng cho tiền xử lý (imputer, scaler, encoder, chia
   tập) và đo chỉ số (metrics).
 - Không thêm web app, backend service, database, Docker hay CI/CD.
@@ -58,7 +64,7 @@ Dữ liệu: King County House Sales, 21.613 giao dịch từ tháng 5/2014
 - Stage 02: MLP Architecture & Implementation - kiến trúc và cài đặt MLP.
 - Stage 03: Model Training & Evaluation - huấn luyện, đánh giá, trực quan hóa.
 - Stage 04: Model Benchmarking & Analysis - 3 mô hình đối chiếu và bảng
-  so sánh 4 mô hình.
+  so sánh 4 mô hình chính thức (PyTorch MLP + 3 mô hình NumPy).
 
 ## Sản phẩm
 

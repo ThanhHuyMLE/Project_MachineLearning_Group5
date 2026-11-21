@@ -8,7 +8,7 @@
 | 4 | Chia tập | Train/validation/test 70/15/15, seed 42, chia theo nhóm id, không trùng id giữa các tập |
 | 5 | Chuẩn hóa | ColumnTransformer chỉ fit trên train (số: median + StandardScaler; zipcode: one-hot), 88 cột đầu ra cho cả 3 tập |
 | 6 | Viết class mô hình | Đủ 4 phương thức, build riêng trước fit, predict báo lỗi khi chưa fit |
-| 7 | Huấn luyện MLP | Fit trên train, theo dõi MSE/MAE trên validation |
+| 7 | Huấn luyện MLP | Fit bản PyTorch chính thức trên train, theo dõi MSE/MAE trên validation |
 | 8 | Huấn luyện 3 mô hình đối chiếu | Cùng tập train/val/test, cùng quy trình đánh giá |
 | 9 | Đánh giá | Có MSE, RMSE, MAE, R2 (và MAPE nếu hợp lý) trên tập test |
 | 10 | Trực quan hóa | Actual vs Predicted, loss train/val, biểu đồ so sánh metric |
@@ -16,15 +16,19 @@
 | 12 | Viết docs | Các file có liên kết, mỗi file cố gắng dưới 200 dòng |
 | 13 | Kiểm tra | `pytest` pass, `ruff check` sạch, pipeline chạy tròn đầu đến cuối |
 
-Trạng thái: các bước 1-8 đã xong (cả 4 mô hình đều được cài đặt bằng thư viện NumPy, xem [adr/007-mo-hinh-numpy.md](adr/007-mo-hinh-numpy.md));
-bước 9-10 đang làm ở Stage 04 (bảng benchmark chính chưa có số liệu,
-xem [progress_results.md](progress_results.md)); bước 11-13 làm sau
-khi benchmark xong.
+Trạng thái: các bước 1-10 đã xong (benchmark chính thức 4 mô hình
+ngày 19/11/2026, xem [progress_results.md](progress_results.md);
+3 mô hình đối chiếu được cài đặt bằng thư viện NumPy, xem
+[adr/007-mo-hinh-numpy.md](adr/007-mo-hinh-numpy.md); MLP chính thức
+dùng PyTorch, xem [adr/008-mlp-pytorch.md](adr/008-mlp-pytorch.md);
+bản PyTorch viết tay giáo dục xem
+[adr/009-mlp-pytorch-manual.md](adr/009-mlp-pytorch-manual.md));
+bước 11-13 làm sau khi benchmark xong.
 
 ## Thứ tự sử dụng class mô hình
 
 ```python
-model = MLPRegressorModel()
+model = MLPTorchRegressorModel()
 model.build_model(input_size=X_train.shape[1])  # pipeline hiện tại: 88
 model.fit(X_train, y_train, X_val=X_val, y_val=y_val)
 y_pred = model.predict(X_test)
@@ -33,6 +37,8 @@ y_pred = model.predict(X_test)
 Riêng MLP cần truyền `input_size` khi build (số cột của ma trận trọng
 số tầng đầu tiên bằng `input_size`); 3 mô hình còn lại gọi
 `build_model()` không tham số vì suy ra số chiều từ dữ liệu lúc fit.
+Bản NumPy MLP legacy và bản PyTorch viết tay dùng cùng cách gọi
+(`MLPRegressorModel`, `MLPTorchManualModel`).
 
 ## Tham số giữ cố định
 
@@ -51,7 +57,7 @@ số tầng đầu tiên bằng `input_size`); 3 mô hình còn lại gọi
 
 1. **Stage 01: Data Understanding & Preprocessing trước:** hoàn thành `preprocessing.py` và hợp đồng dữ liệu.
    Các Stage sau chỉ đọc hợp đồng, không sửa file của Stage 01 khi chưa thống nhất.
-2. **Stage 02: MLP Architecture & Implementation và Stage 04: Model Benchmarking & Analysis song song:** Stage 02 làm `models/mlp.py`,
+2. **Stage 02: MLP Architecture & Implementation và Stage 04: Model Benchmarking & Analysis song song:** Stage 02 làm `models/mlp_torch.py` (chính thức), `models/mlp.py` (legacy) và `models/mlp_torch_manual.py` (giáo dục),
    Stage 04 làm 3 mô hình đối chiếu. Hai nhóm file độc lập nhau.
 3. **Stage 03: Model Training & Evaluation cuối cùng:** ghép pipeline trong `train_evaluate.py`,
    đánh giá, vẽ biểu đồ, phân tích overfitting.

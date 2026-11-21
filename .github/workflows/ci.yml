@@ -13,6 +13,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          # Cache pip (torch CPU khoang 200 MB): CI cai duoc torch tu
+          # requirements.txt ma khong tai lai moi lan chay.
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

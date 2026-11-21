@@ -1,2 +1,7 @@
+# Moi truong notebook = toan bo requirements.txt (gom torch CPU-only)
+# + jupyterlab/ipykernel. Dung -r thay vi lap lai torch o day de chi
+# co mot noi dinh nghia dependency (tranh lech phien ban giua notebook
+# va pipeline CLI).
+-r requirements.txt
 jupyterlab>=4.0
 ipykernel>=6.0

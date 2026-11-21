@@ -46,10 +46,16 @@ Chỗ nào chưa có số thật thì để lại ghi chú chờ điền số v�
 
 | Mô hình | Siêu tham số dùng trong benchmark chính |
 |---|---|
-| MLP Regression | Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear); He init; Adam lr 0.001, beta1 0.9, beta2 0.999, epsilon 1e-8; epochs 100; batch size 32; random_state 42 |
+| PyTorch MLP Regression | Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear); huấn luyện bằng `torch.nn`, DataLoader, MSELoss, Adam (autograd), He init dạng chuẩn; Adam lr 0.001, epochs 100, batch size 32, random_state 42; torch CPU 2.15.0 |
 | Linear Regression | Batch gradient descent được cài đặt bằng thư viện NumPy; lr 0.1; max_epochs 1000; tol 1e-6 (tương đối) |
 | Decision Tree Regression | max_depth=8, random_state=42; các tham số còn lại giữ mặc định (min_samples_split=2, min_samples_leaf=1) |
 | Random Forest Regression | n_estimators=100; max_depth=None; max_features="sqrt" (mỗi lần chia lấy mẫu ngẫu nhiên sqrt(n_features) đặc trưng); min_samples_split=2; min_samples_leaf=1; random_state=42 |
+
+Bản NumPy MLP legacy (ngoài bảng chính thức, chỉ chạy kèm bằng
+`--include-numpy-mlp`): cùng kiến trúc và cấu hình với bản PyTorch
+(Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear); He init;
+Adam lr 0.001, beta1 0.9, beta2 0.999, epsilon 1e-8; epochs 100;
+batch size 32; random_state 42).
 
 ### Căn cứ chọn siêu tham số (trên validation, không dùng test)
 
@@ -116,6 +122,28 @@ nhiên, `zipcode` dạng số) và đã lỗi thời, không so sánh với số
   - Huấn luyện: Mini-batch Adam (`learning_rate=0.001`, `beta1=0.9`, `beta2=0.999`, `epsilon=1e-8`, `epochs=100`, `batch_size=32`, `random_state=42`), hàm mất mát MSE, theo dõi `loss` và `val_loss` sau mỗi epoch và lưu tham số tại `outputs/mlp_parameters.json`.
 - Gradient check của MLP: sai số tương đối tối đa khoảng 1,7e-08
   (< 1e-5), xem `tests/test_mlp_gradient.py`.
+- Bản PyTorch của MLP (19/11/2026, theo yêu cầu của cô giáo, xem
+  `docs/adr/008-mlp-pytorch.md`): `MLPTorchRegressorModel` trong
+  `src/house_price/models/mlp_torch.py`, cùng kiến trúc và cấu hình
+  với bản NumPy, huấn luyện bằng `torch.nn`, DataLoader, MSELoss,
+  Adam và autograd theo 6 bước trong slide của cô giáo, lưu state_dict
+  tại `outputs/mlp_torch_parameters.pt`. Test trong
+  `tests/test_mlp_torch.py` (8 test: kiến trúc, loss giảm, R2 trên
+  dữ liệu synthetic, lưu/nạp, lặp lại được với cùng seed) và
+  `tests/test_mlp_torch_persistence.py` (nạp `weights_only=True`,
+  từ chối checkpoint sai định dạng/khác kiến trúc).
+- Bản PyTorch viết tay, giáo dục (19/11/2026, xem
+  `docs/adr/009-mlp-pytorch-manual.md`): `MLPTorchManualModel` trong
+  `src/house_price/models/mlp_torch_manual.py`, cùng kiến trúc
+  32-16-1, dùng tensor torch nhưng forward/backward/Adam đều viết tay
+  bằng chain rule, tham số `requires_grad=False`, không gọi
+  `backward()`/autograd và không dùng `torch.optim` trong training
+  path (test `test_manual_training_path_uses_no_autograd` quét source
+  để khóa điều này). Gradient check so với finite difference: sai số
+  tương đối tối đa 1,739e-03 (mạng 3 -> 4 -> 1); học ánh xạ tuyến tính
+  trên dữ liệu synthetic đạt R2 0,9834. Bản này KHÔNG nằm trong
+  benchmark chính thức và không có trong `train_evaluate.py`; lưu
+  tham số tại `outputs/mlp_torch_manual_parameters.pt`.
 
 ## Stage 03: Model Training & Evaluation
 
@@ -123,10 +151,55 @@ nhiên, `zipcode` dạng số) và đã lỗi thời, không so sánh với số
 
 ## Stage 04: Model Benchmarking & Analysis
 
-### Bảng benchmark chính (pipeline chuẩn 88 đặc trưng, tập test 3.241 dòng)
+### Bảng benchmark chính sau khi thêm MLP PyTorch (chạy ngày 19/11/2026, Ubuntu)
+
+Chạy ngày 19/11/2026 bằng lệnh `PYTHONPATH=src python -m house_price.train_evaluate --evaluation-split test --output-dir outputs` trên Ubuntu (Python 3.14, torch CPU 2.15.0, `venv-ml-linux`); train 15.129 dòng, validation 3.243 dòng, test 3.241 dòng, 88 đặc trưng, seed 42. Bảng dưới đây thay thế bảng ngày 17/11/2026 làm kết quả chính thức của Stage 04: 4 mô hình chính thức chạy trên cùng pipeline 88 đặc trưng, cùng tập test, cùng bộ chỉ số. 3 mô hình NumPy cũ (Random Forest, Linear, Decision Tree) tái lập đúng số ngày 17/11/2026 (lệch 0); bản NumPy MLP không thuộc bảng này (xem mục so sánh thêm bên dưới).
+
+| Mô hình | Thời gian fit | MSE | RMSE (USD) | MAE (USD) | R2 | MAPE |
+|---|---:|---:|---:|---:|---:|---:|
+| Random Forest Regression | 106,12 giây | 19.584.927.856,05 | 139.946,16 | 77.253,52 | 0,8638 | 14,6857% |
+| PyTorch MLP Regression | 35,40 giây | 23.956.240.614,18 | 154.778,04 | 89.838,73 | 0,8334 | 17,7992% |
+| Linear Regression | 1,54 giây | 27.053.237.258,13 | 164.478,68 | 99.082,41 | 0,8119 | 20,2726% |
+| Decision Tree Regression | 0,52 giây | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 | 18,2854% |
+
+Thứ hạng: Random Forest (R2 0,8638) tốt nhất, tiếp theo là PyTorch
+MLP (0,8334), Linear (0,8119), Decision Tree (0,7314). PyTorch MLP
+thua Random Forest 0,0304 R2 nhưng hơn Linear 0,0215 R2; RMSE của
+PyTorch MLP thấp hơn Linear 9.700,64 USD.
+
+Kết quả chạy trên validation ngày 19/11/2026 (`--evaluation-split val`), ghi `outputs/metrics_val.csv`:
+
+| Mô hình | R2 trên validation | MAPE trên validation |
+|---|---:|---:|
+| Random Forest Regression | 0,8617 | 13,6527% |
+| PyTorch MLP Regression | 0,8287 | 16,8663% |
+| Linear Regression | 0,8091 | 18,8608% |
+| Decision Tree Regression | 0,7198 | 17,5481% |
+
+### So sánh thêm: bản NumPy MLP legacy (ngoài bảng chính thức)
+
+Bản NumPy MLP (`MLP Regression`) không thuộc bảng chính thức ngày
+19/11/2026; nó chỉ chạy kèm bằng cờ `--include-numpy-mlp` để đối
+chiếu với các lần chạy cũ. Số đo ngày 19/11/2026 chỉ có trên
+validation (không đo test trong bảng chính thức):
+
+| Mô hình | R2 trên validation | RMSE trên validation (USD) | MAE trên validation (USD) | MAPE trên validation |
+|---|---:|---:|---:|---:|
+| MLP Regression (NumPy legacy) | 0,8310 | 149.625,96 | 85.838,49 | 17,1460% |
+
+Số test của bản NumPy MLP (R2 0,8354, RMSE 153.880,55 USD, MAE
+90.391,93 USD, MAPE 18,0595%) là số lịch sử ngày 17/11/2026, xem
+bảng lịch sử bên dưới; không dùng số đó như số đo ngày 19/11. Trên
+validation, bản NumPy hơn bản PyTorch chính thức 0,0023 R2; trên
+test lịch sử, bản NumPy hơn 0,0020 R2 nhưng thua 0,26 điểm phần trăm
+MAPE. Chênh lệch này nhỏ hơn nhiều so với khoảng cách tới Random
+Forest (0,0304 R2), nên kết luận "hai bản MLP gần như tương đương"
+không đổi.
+
+### Bảng benchmark chính (pipeline chuẩn 88 đặc trưng, tập test 3.241 dòng) - ngày 17/11/2026, giữ làm lịch sử
 
 Chạy ngày 17/11/2026 bằng lệnh `PYTHONPATH=src python -m house_price.train_evaluate --evaluation-split test --output-dir outputs`, tổng thời gian 294,13 giây; train 15.129 dòng, validation 3.243 dòng, test 3.241 dòng, 88 đặc trưng, seed 42.
-Bảng dưới đây là kết quả chính thức của Stage 04: cả 4 mô hình chạy
+Bảng dưới đây là kết quả chính thức của Stage 04 trước khi thêm bản PyTorch: cả 4 mô hình chạy
 trên cùng pipeline 88 đặc trưng, cùng tập test, cùng bộ chỉ số
 (MSE, RMSE, MAE, R2, MAPE) tính bằng `regression_metrics` và xuất
 đầy đủ qua `compare_models`. Cột MAPE có trong `outputs/metrics.csv`
@@ -142,7 +215,7 @@ bổ sung MAPE, không đổi các số còn lại.
 | Decision Tree Regression | 2,15 giây | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 | 18,2854% |
 | Random Forest Regression | 251,47 giây | 19.584.927.856,05 | 139.946,16 | 77.253,52 | 0,8638 | 14,6857% |
 
-### Kết quả chạy trên validation (mặc định của CLI)
+### Kết quả chạy trên validation ngày 17/11/2026 (giữ làm lịch sử)
 
 `train_evaluate` mặc định đánh giá trên validation
 (`--evaluation-split val`; muốn đánh giá cuối trên test phải chọn
@@ -248,11 +321,11 @@ Vì vậy:
 - Kết luận chính thức của dự án chỉ dựa trên bảng benchmark chính
   (88 đặc trưng), trong đó mọi quyết định về pipeline đã chốt trước
   khi đo trên test.
-- Đã xong (2026-11-17): các cell huấn luyện (Cell 30-44) đã dùng đồng nhất ma trận 88 đặc trưng `X_train_prep`, `X_val_prep`, `X_test_prep` cho cả 4 mô hình.
+- Đã xong (2026-11-17): các cell huấn luyện (Cell 30-44) đã dùng đồng nhất ma trận 88 đặc trưng `X_train_prep`, `X_val_prep`, `X_test_prep` cho cả 4 mô hình. Từ 19/11/2026, notebook so sánh 5 mô hình (thêm bản PyTorch của MLP và giữ bản NumPy để đối chiếu), còn benchmark CLI chính thức chỉ có 4 mô hình (bản NumPy MLP ngoài bảng, chạy kèm bằng `--include-numpy-mlp`).
 
 ## Giới hạn đã biết
 
-- `MLPRegressorModel` đã được cài đặt thủ công bằng NumPy trong `src/house_price/models/mlp.py` (không phụ thuộc TensorFlow).
+- `MLPRegressorModel` đã được cài đặt thủ công bằng NumPy trong `src/house_price/models/mlp.py` (không phụ thuộc TensorFlow). MLP có thêm bản PyTorch trong `src/house_price/models/mlp_torch.py` theo yêu cầu của cô giáo (xem `docs/adr/008-mlp-pytorch.md`).
 - Các số liệu demo giá dự đoán trong DESIGN.md mục 6.2 (ví dụ 542.300 USD)
   là số minh họa, không phải kết quả đo được. Không trích dẫn chúng
   như kết quả thực nghiệm.

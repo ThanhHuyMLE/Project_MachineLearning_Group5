@@ -6,10 +6,44 @@ Multilayer Perceptron (MLP) là mạng nơ-ron truyền thẳng, gồm các tầ
 neuron nối tiếp nhau. Mô hình học quan hệ phi tuyến giữa các đặc trưng
 của căn nhà và giá bán, là mô hình chính của Bài tập thực hành 4.
 
-Trong dự án, MLP được cài đặt thủ công bằng NumPy: phép tính forward,
-gradient backpropagation và cập nhật Adam được viết trong class, không
-dùng `sklearn.MLPRegressor`, TensorFlow hoặc Keras để huấn luyện.
-Xem [adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md).
+Trong dự án, MLP có ba bản cài đặt cùng kiến trúc 32-16-1: bản
+PyTorch chính thức (`mlp_torch.py`, dùng autograd và `torch.optim`),
+bản NumPy legacy (`mlp.py`, forward/backward/Adam viết tay bằng
+NumPy, giữ làm đối chiếu) và bản PyTorch viết tay mang tính giáo dục
+(`mlp_torch_manual.py`, forward/backward/Adam viết tay bằng tensor
+torch, không dùng autograd). Không dùng `sklearn.MLPRegressor`,
+TensorFlow hoặc Keras để huấn luyện. Xem
+[adr/007-mo-hinh-numpy.md](../adr/007-mo-hinh-numpy.md),
+[adr/008-mlp-pytorch.md](../adr/008-mlp-pytorch.md) và
+[adr/009-mlp-pytorch-manual.md](../adr/009-mlp-pytorch-manual.md).
+
+Ngoài bản NumPy, MLP còn có bản PyTorch trong
+`src/house_price/models/mlp_torch.py` (class `MLPTorchRegressorModel`),
+theo yêu cầu của cô giáo cho lab 4 (xem
+[adr/008-mlp-pytorch.md](../adr/008-mlp-pytorch.md)). Bản PyTorch dùng
+cùng kiến trúc và cùng cấu hình (Adam lr 0.001, epochs 100, batch 32,
+seed 42), huấn luyện bằng `torch.nn`, DataLoader, MSELoss, Adam và
+autograd theo đúng 6 bước trong slide của cô giáo; bản NumPy được giữ
+nguyên làm đối chiếu.
+
+Vai trò của 4 nhóm mô hình trong dự án:
+
+| Nhóm | Công nghệ | Cách tính gradient | Vai trò |
+|---|---|---|---|
+| Standard PyTorch MLP | PyTorch | Autograd (`loss.backward()`) | Workflow và benchmark chính thức của Lab 4 |
+| Manual PyTorch MLP | PyTorch Tensor | Chain rule viết tay | Bằng chứng hiểu thuật toán và để kiểm chứng |
+| NumPy MLP | NumPy | Chain rule viết tay | Đối chiếu legacy mang tính giáo dục |
+| Các mô hình hồi quy còn lại (Linear, Decision Tree, Random Forest) | NumPy | Thuật toán viết tay | Baseline đối chiếu chính thức |
+
+Bản PyTorch viết tay là bằng chứng trung tâm cho thấy nhóm hiểu
+backprop và Adam, không phải file phụ: nó viết tay toàn bộ forward,
+backward theo chain rule và Adam bằng tensor torch
+(`MLPTorchManualModel`). Ngược lại, bản PyTorch chính thức KHÔNG
+phải "hoàn toàn viết tay": nó dùng autograd và `torch.optim.Adam`
+của PyTorch theo yêu cầu của cô giáo cho lab 4. Nếu yêu cầu "viết
+tay" của cô chưa rõ ràng, phân biệt này được ghi rõ ở đây thay vì
+giả định: phần "viết tay" của dự án nằm ở bản manual và các mô hình
+NumPy, còn bản chính thức dùng đúng công cụ PyTorch chuẩn.
 
 Kiến trúc mặc định:
 
@@ -241,6 +275,93 @@ Kiểm chứng tính đúng đắn: test gradient check trong
 với gradient số (finite difference); sai số tương đối tối đa khoảng
 1,7e-08, nhỏ hơn ngưỡng 1e-5.
 
+### Bản PyTorch (MLPTorchRegressorModel)
+
+File: `src/house_price/models/mlp_torch.py`. Bản PyTorch giữ nguyên
+interface `__init__` -> `build_model` -> `fit` -> `predict` và cùng
+siêu tham số với bản NumPy (trừ `beta1`/`beta2`/`epsilon`, dùng mặc
+định của `torch.optim.Adam`), để pipeline, benchmark và notebook
+không đổi cách gọi.
+
+| Thành phần | Vai trò |
+|---|---|
+| `__init__(...)` | Lưu cấu hình tầng ẩn, learning rate, batch size, số epoch và trạng thái ban đầu |
+| `build_model(input_size)` | Tạo mạng `_MLPNetwork` (Linear + ReLU, He init dạng chuẩn), seed NumPy/Python/torch |
+| `fit(X_train, y_train, X_val=None, y_val=None)` | Huấn luyện theo 6 bước của cô giáo, ghi loss/val_loss từng epoch và tự lưu state_dict |
+| `predict(X)` | Trả về giá dự đoán; yêu cầu model đã fit và đầu vào có đúng số cột |
+| `save(path=None)` / `load(path)` | Lưu/nạp state_dict kèm siêu tham số và history (bước 6: Save/Load) |
+| `_mse(X, y)` | Tính MSE toàn bộ tập bằng forward, không cập nhật trọng số |
+
+6 bước huấn luyện theo slide của cô giáo, khớp với code trong `fit`:
+
+1. Chuẩn bị dữ liệu: `TensorDataset` (tensor float32) và `DataLoader`
+   (batch 32, shuffle bằng generator có seed cố định nên lặp lại được).
+2. Định nghĩa mô hình: `_MLPNetwork` là `nn.Sequential` gồm
+   Linear -> ReLU -> Linear -> ReLU -> Linear.
+3. Hàm loss MSE (`nn.MSELoss`) và optimizer Adam
+   (`torch.optim.Adam`, lr 0.001).
+4. Training loop: mỗi batch `zero_grad` -> forward -> loss ->
+   `backward` (autograd) -> `step`.
+5. Validation: sau mỗi epoch tính MSE trên train và validation
+   (chỉ forward), ghi vào `history_`.
+6. Save/Load: `fit` tự lưu checkpoint (state_dict + siêu tham số +
+   history) vào `outputs/mlp_torch_parameters.pt`; nạp lại bằng
+   `MLPTorchRegressorModel.load(path)`.
+
+Khởi tạo He dạng chuẩn (`kaiming_normal_`, nonlinearity ReLU) cho mọi
+tầng Linear và bias 0, giống bản NumPy (phân phối chuẩn
+`N(0, sqrt(2/fan_in))`). Test trong `tests/test_mlp_torch.py` kiểm
+tra kiến trúc, loss giảm khi train, R2 trên dữ liệu synthetic, lưu/nạp
+cho cùng dự đoán và lặp lại được với cùng seed.
+
+### Bản PyTorch viết tay (MLPTorchManualModel, giáo dục)
+
+File: `src/house_price/models/mlp_torch_manual.py`. Bản này dùng
+tensor torch cho mọi phép tính nhưng KHÔNG dùng autograd và KHÔNG
+dùng optimizer có sẵn: forward, backward và Adam đều viết tay.
+Xem [adr/009-mlp-pytorch-manual.md](../adr/009-mlp-pytorch-manual.md).
+
+| Thành phần | Vai trò |
+|---|---|
+| `mse_loss(y_pred, y_true)` | MSE viết tay: trung bình bình phương sai số trên batch |
+| `__init__(...)` | Lưu cấu hình, kể cả `beta1`/`beta2`/`epsilon` của Adam viết tay |
+| `build_model(input_size)` | Khởi tạo weights He (`torch.randn * sqrt(2/fan_in)`), bias 0, moment Adam bằng 0; mọi tham số `requires_grad=False` |
+| `_forward(X)` | Forward tay qua Dense/ReLU/Linear, trả dự đoán kèm cache (activations, pre-activations) |
+| `_backward(y_true, y_pred, cache)` | Gradient tay bằng chain rule: delta đầu ra `(2/n)(y_pred - y)` rồi truyền ngược qua đạo hàm ReLU (đạo hàm bằng 0 tại 0) |
+| `_adam_update(grad_W, grad_b)` | Adam viết tay: moment m, v, hiệu chỉnh độ lệch, cập nhật trực tiếp dưới `torch.no_grad()` |
+| `fit(X_train, y_train, X_val=None, y_val=None)` | Vòng lặp: DataLoader nạp batch -> `_forward` -> `_backward` -> `_adam_update`; ghi loss/val_loss, tự lưu checkpoint |
+| `save(path=None)` / `load(path)` | Lưu/nạp trực tiếp danh sách tensor `weights`/`biases` (không dùng `state_dict`, vì bản này không có `nn.Module`) |
+
+Công thức dùng trong `_backward` giống hệt mục 4 ở trên
+(`δ⁽³⁾ = (2/B)(ŷ - y)`, `dW⁽ˡ⁾ = (A⁽ˡ⁻¹⁾)ᵀ δ⁽ˡ⁾`,
+`db⁽ˡ⁾` là tổng `δ⁽ˡ⁾` theo batch), chỉ khác kiểu dữ liệu: tensor
+torch float32 thay cho mảng NumPy float64. Kiểm chứng:
+gradient check so với finite difference cho sai số tương đối tối đa
+1,739e-03 (mạng 3 -> 4 -> 1), lớn hơn bản NumPy (1,7e-08) vì
+float32 làm tròn nhiều hơn float64; học ánh xạ tuyến tính trên dữ
+liệu synthetic đạt R2 0,9834 (xem
+`tests/test_mlp_torch_manual.py`). Test
+`test_manual_training_path_uses_no_autograd` quét source để khóa
+việc không gọi `backward()`, `autograd.grad` hay `torch.optim`
+trong training path.
+
+### Bảng phân biệt 3 bản MLP
+
+| Tiêu chí | PyTorch chính thức | NumPy legacy | PyTorch viết tay (giáo dục) |
+|---|---|---|---|
+| File | `models/mlp_torch.py` | `models/mlp.py` | `models/mlp_torch_manual.py` |
+| Class | `MLPTorchRegressorModel` | `MLPRegressorModel` | `MLPTorchManualModel` |
+| Kiểu số | Tensor torch float32 | Mảng NumPy float64 | Tensor torch float32 |
+| Định nghĩa mạng | `nn.Module` (`_MLPNetwork`, `nn.Sequential`) | Danh sách weights/biases NumPy | Danh sách tensor weights/biases |
+| Forward | `forward()` của `nn.Module` | `_forward` viết tay | `_forward` viết tay |
+| Gradient | autograd (`loss.backward()`) | `_backward` viết tay (chain rule) | `_backward` viết tay (chain rule) |
+| Optimizer | `torch.optim.Adam` | `_adam_update` viết tay | `_adam_update` viết tay |
+| Nạp batch | `TensorDataset` + `DataLoader` | Xáo trộn NumPy, cắt batch tay | `TensorDataset` + `DataLoader` |
+| Lưu tham số | `state_dict` trong `.pt` | JSON | Danh sách tensor trong `.pt` |
+| Trong benchmark chính thức | Có (mô hình MLP duy nhất) | Không (chạy kèm `--include-numpy-mlp`) | Không (không có trong `train_evaluate.py`) |
+| Gradient check | Không có (autograd tự lo) | 1,7e-08 | 1,739e-03 (float32) |
+| Vai trò | Mô hình dùng thật | Đối chiếu lịch sử | Học và vấn đáp về backprop/Adam |
+
 ## 7. Siêu tham số
 
 | Tham số | Mặc định | Ý nghĩa |
@@ -254,6 +375,10 @@ với gradient số (finite difference); sai số tương đối tối đa kho�
 | `beta2` | 0.999 | Hệ số trung bình động bậc hai của Adam |
 | `epsilon` | 1e-8 | Hằng số tránh chia cho 0 trong Adam |
 | `save_path` | `outputs/mlp_parameters.json` | Nơi lưu tham số đã học sau khi fit |
+
+Bản PyTorch dùng cùng bảng trên (trừ `beta1`/`beta2`/`epsilon`, dùng
+mặc định của `torch.optim.Adam`), với `save_path` mặc định là
+`outputs/mlp_torch_parameters.pt` (state_dict thay cho JSON).
 
 ## 8. Dữ liệu sử dụng
 
@@ -297,8 +422,9 @@ mô hình. Không chọn cấu hình theo kết quả test.
 
 ## 10. Kết quả thực nghiệm
 
-Kết quả trên tập test (3.241 dòng, pipeline chuẩn 88 đặc trưng),
-Stage 03, xem [progress_results.md](../progress_results.md):
+Kết quả của bản NumPy legacy trên tập test (3.241 dòng, pipeline
+chuẩn 88 đặc trưng), Stage 03, là số lịch sử ngày 17/11/2026, xem
+[progress_results.md](../progress_results.md):
 
 | Chỉ số | Kết quả |
 |---|---:|
@@ -315,6 +441,21 @@ Stage 03, xem [progress_results.md](../progress_results.md):
 R² = 0,8354 không có nghĩa là dự đoán đúng 83,54%; đó là chỉ số giải
 thích biến thiên theo định nghĩa R². Số liệu có thể đổi khi source,
 dữ liệu hoặc cấu hình thay đổi.
+
+Bản PyTorch (cùng tập test, cùng pipeline, chạy ngày 19/11/2026):
+
+| Chỉ số | Kết quả |
+|---|---:|
+| Test MSE | 23.956.240.614,18 |
+| Test RMSE | 154.778,04 USD |
+| Test MAE | 89.838,73 USD |
+| Test R² | 0,8334 |
+| Test MAPE | 17,80% (17,7992% trong `outputs/metrics.csv`) |
+
+Bản PyTorch gần như tương đương bản NumPy: R2 thấp hơn 0,0020, RMSE
+cao hơn 897 USD, nhưng MAE thấp hơn 553 USD và MAPE thấp hơn 0,26
+điểm phần trăm. Trên validation: PyTorch R2 0,8287 so với NumPy R2
+0,8310.
 
 ## 11. Trực quan hóa và demo
 

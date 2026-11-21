@@ -1,4 +1,13 @@
-"""Điều phối pipeline huấn luyện và đánh giá các mô hình hồi quy."""
+"""Điều phối pipeline huấn luyện và đánh giá các mô hình hồi quy.
+
+Benchmark chính thức gồm 4 mô hình, tất cả đều cài đặt viết tay:
+PyTorch MLP Regression, Linear Regression, Decision Tree Regression
+và Random Forest Regression (rừng dùng cây CART viết tay). MLP NumPy
+("MLP Regression", cùng kiến trúc với bản PyTorch nhưng cài đặt bằng
+NumPy) không thuộc bảng chính thức; nó chỉ chạy khi bật cờ
+--include-numpy-mlp, để so sánh thêm với các lần chạy cũ, và luôn
+được ghi rõ là ngoài bảng chính thức.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +25,7 @@ from house_price.models import (
     DecisionTreeRegressorModel,
     LinearRegressorModel,
     MLPRegressorModel,
+    MLPTorchRegressorModel,
     RandomForestRegressorModel,
 )
 from house_price.preprocessing import prepare_data
@@ -35,8 +45,10 @@ DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs"
 # (một lần prepare_data, seed 42, 88 cột;
 # outputs/validation_comparison.csv). Thời gian fit tuyệt đối phụ
 # thuộc phần cứng và tải máy nên chỉ thứ tự tương đối mới là bằng chứng.
-# - MLP: kiến trúc Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear),
-#   Adam, 100 epoch, batch 32.
+# - PyTorch MLP: kiến trúc Dense(32, ReLU) -> Dense(16, ReLU) ->
+#   Dense(1, Linear), Adam, 100 epoch, batch 32; huấn luyện bằng
+#   torch.nn, DataLoader, MSELoss và Adam (yêu cầu của cô giáo, xem
+#   ADR-008). Kiến trúc và cấu hình giống bản MLP NumPy.
 # - Linear: batch gradient descent viết tay, lr=0.1, tối đa 1000 epoch,
 #   dừng sớm khi thay đổi tương đối của loss < tol=1e-6.
 #   Đo trên validation: val R2 0.8091 (fit 1.96s).
@@ -50,7 +62,7 @@ DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs"
 #   nên không dùng, dù val R2 cao hơn (0.8720). Giới hạn depth=8 cho
 #   rừng bị loại vì val R2 rơi xuống 0.7839 (10 cây, sqrt, fit 1.38s).
 BENCHMARK_CONFIG = {
-    "MLP Regression": {"epochs": 100, "batch_size": 32},
+    "PyTorch MLP Regression": {"epochs": 100, "batch_size": 32},
     "Linear Regression": {
         "learning_rate": 0.1,
         "max_epochs": 1000,
@@ -64,12 +76,20 @@ BENCHMARK_CONFIG = {
     },
 }
 
+# Cấu hình của MLP NumPy, chỉ dùng khi bật --include-numpy-mlp.
+# Không thuộc BENCHMARK_CONFIG chính thức.
+NUMPY_MLP_CONFIG = {"epochs": 100, "batch_size": 32}
+
 MODEL_NAMES = [
-    "MLP Regression",
+    "PyTorch MLP Regression",
     "Linear Regression",
     "Decision Tree Regression",
     "Random Forest Regression",
 ]
+
+# Tên của MLP NumPy trong bảng so sánh khi chạy kèm cờ
+# --include-numpy-mlp. Luôn đứng ngoài 4 mô hình chính thức.
+NUMPY_MLP_NAME = "MLP Regression"
 
 # Tập đánh giá -> (nhãn hiển thị, hậu tố tên file output). Split "test"
 # giữ tên file cũ để tương thích ngược; split "val" thêm hậu tố "_val"
@@ -90,19 +110,28 @@ def _evaluation_split_info(evaluation_split: str) -> tuple[str, str]:
         ) from None
 
 
-def build_models(output_dir: str | Path = DEFAULT_OUTPUT_DIR) -> dict[str, object]:
-    """Tạo đủ 4 mô hình với cấu hình benchmark trong BENCHMARK_CONFIG."""
+def build_models(
+    output_dir: str | Path = DEFAULT_OUTPUT_DIR,
+    include_numpy_mlp: bool = False,
+) -> dict[str, object]:
+    """Tạo 4 mô hình chính thức với cấu hình benchmark trong BENCHMARK_CONFIG.
+
+    Mô hình MLP mặc định là bản PyTorch, không phải bản NumPy.
+    Truyền ``include_numpy_mlp=True`` để thêm MLP NumPy
+    (``"MLP Regression"``, lưu tham số vào ``outputs/mlp_parameters.json``)
+    vào cuối danh sách, ngoài bảng chính thức, chỉ phục vụ so sánh thêm.
+    """
     output_dir = Path(output_dir)
-    mlp_config = BENCHMARK_CONFIG["MLP Regression"]
+    mlp_torch_config = BENCHMARK_CONFIG["PyTorch MLP Regression"]
     linear_config = BENCHMARK_CONFIG["Linear Regression"]
     tree_config = BENCHMARK_CONFIG["Decision Tree Regression"]
     forest_config = BENCHMARK_CONFIG["Random Forest Regression"]
 
-    return {
-        "MLP Regression": MLPRegressorModel(
-            epochs=mlp_config["epochs"],
-            batch_size=mlp_config["batch_size"],
-            save_path=output_dir / "mlp_parameters.json",
+    models: dict[str, object] = {
+        "PyTorch MLP Regression": MLPTorchRegressorModel(
+            epochs=mlp_torch_config["epochs"],
+            batch_size=mlp_torch_config["batch_size"],
+            save_path=output_dir / "mlp_torch_parameters.pt",
         ),
         "Linear Regression": LinearRegressorModel(
             learning_rate=linear_config["learning_rate"],
@@ -118,19 +147,30 @@ def build_models(output_dir: str | Path = DEFAULT_OUTPUT_DIR) -> dict[str, objec
             max_features=forest_config["max_features"],
         ),
     }
+    if include_numpy_mlp:
+        models[NUMPY_MLP_NAME] = MLPRegressorModel(
+            epochs=NUMPY_MLP_CONFIG["epochs"],
+            batch_size=NUMPY_MLP_CONFIG["batch_size"],
+            save_path=output_dir / "mlp_parameters.json",
+        )
+    return models
 
 
 def train_and_evaluate(
     data: dict[str, object],
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
     evaluation_split: str = "val",
+    include_numpy_mlp: bool = False,
 ) -> tuple[pd.DataFrame, dict[str, object]]:
-    """Fit cả 4 mô hình trên train và đánh giá trên tập đã chọn.
+    """Fit 4 mô hình chính thức trên train và đánh giá trên tập đã chọn.
 
     Mặc định đánh giá trên validation (``evaluation_split="val"``), dùng
     khi chọn/tinh chỉnh cấu hình; truyền ``"test"`` để đánh giá cuối trên
     test. Mọi mô hình chỉ fit trên train; X_val vẫn dùng để theo dõi
-    val_loss khi fit MLP.
+    val_loss khi fit MLP. Linear, Decision Tree và Random Forest chỉ
+    nhận X_train/y_train nên validation không lấn vào quá trình fit
+    của ba mô hình này. Truyền ``include_numpy_mlp=True`` để thêm MLP
+    NumPy vào run, ngoài bảng chính thức, chỉ để so sánh thêm.
 
     Mọi mô hình trong BENCHMARK_CONFIG đều bắt buộc: nếu mô hình nào
     chưa được cài đặt (NotImplementedError) thì run FAIL ngay với lỗi
@@ -144,18 +184,24 @@ def train_and_evaluate(
     else:
         X_eval, y_eval = data["X_test"], data["y_test"]
     print(f"Evaluation split: {split_label}", flush=True)
+    if include_numpy_mlp:
+        print(
+            f"Ghi chú: {NUMPY_MLP_NAME} (NumPy) chạy ngoài bảng chính thức, chỉ để so sánh thêm.",
+            flush=True,
+        )
 
     output_dir = Path(output_dir)
     results: dict[str, dict[str, float | None]] = {}
     predictions: dict[str, object] = {}
     fit_seconds: dict[str, float] = {}
 
-    models = build_models(output_dir)
+    models = build_models(output_dir, include_numpy_mlp=include_numpy_mlp)
+    expected_names = MODEL_NAMES + ([NUMPY_MLP_NAME] if include_numpy_mlp else [])
 
     for name, model in models.items():
         fit_start = time.perf_counter()
         try:
-            if isinstance(model, MLPRegressorModel):
+            if isinstance(model, (MLPRegressorModel, MLPTorchRegressorModel)):
                 model.build_model(input_size=data["X_train"].shape[1])
 
                 if "X_val" in data and "y_val" in data:
@@ -181,7 +227,8 @@ def train_and_evaluate(
         print(f"Fit {name}: {fit_seconds[name]:.2f} giây", flush=True)
 
         # Xuất tham số đã học cho mô hình hỗ trợ export_params (Linear).
-        # MLP tự lưu tham số thành JSON trong fit qua save_path.
+        # MLP NumPy tự lưu tham số thành JSON trong fit qua save_path;
+        # MLP PyTorch tự lưu state_dict thành .pt trong fit qua save_path.
         export_params = getattr(model, "export_params", None)
         if callable(export_params):
             slug = name.lower().replace(" ", "_")
@@ -212,7 +259,7 @@ def train_and_evaluate(
                 save_path=output_dir / f"training_history_{slug}.png",
             )
 
-    missing = [name for name in MODEL_NAMES if name not in results]
+    missing = [name for name in expected_names if name not in results]
     if missing:
         raise RuntimeError("Thiếu kết quả cho mô hình bắt buộc: " + ", ".join(missing))
 
@@ -229,7 +276,7 @@ def train_and_evaluate(
                     save_path=output_dir / f"comparison_{metric}{suffix}.png",
                 )
     print("Thời gian fit (giây):", flush=True)
-    for name in MODEL_NAMES:
+    for name in expected_names:
         print(f"  {name}: {fit_seconds[name]:.2f}", flush=True)
     return table, predictions
 
@@ -261,6 +308,13 @@ def main(argv: list[str] | None = None) -> int:
         "dùng khi chọn/tinh chỉnh cấu hình) hoặc 'test' (đánh giá cuối, chỉ "
         "dùng một lần sau khi đã chốt cấu hình)",
     )
+    parser.add_argument(
+        "--include-numpy-mlp",
+        action="store_true",
+        help='Thêm MLP NumPy ("MLP Regression") vào run để so sánh thêm; '
+        "mặc định tắt, bảng chính thức chỉ gồm 4 mô hình "
+        "(PyTorch MLP, Linear, Decision Tree, Random Forest)",
+    )
     args = parser.parse_args(argv)
 
     output_dir = Path(args.output_dir)
@@ -271,7 +325,10 @@ def main(argv: list[str] | None = None) -> int:
     started = time.perf_counter()
     data = prepare_data(args.data)
     table, predictions = train_and_evaluate(
-        data, output_dir, evaluation_split=args.evaluation_split
+        data,
+        output_dir,
+        evaluation_split=args.evaluation_split,
+        include_numpy_mlp=args.include_numpy_mlp,
     )
 
     metrics_file = output_dir / f"metrics{suffix}.csv"
