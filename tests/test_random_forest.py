@@ -141,3 +141,13 @@ def test_build_model_resets_fitted_state():
     assert forest.trees_ == []
     with pytest.raises(RuntimeError, match="chưa fit"):
         forest.predict(X[:2])
+
+
+def test_json_round_trip_preserves_predictions(tmp_path):
+    forest, X, _ = _fit_forest(n_estimators=5, max_depth=4)
+
+    path = forest.export_json(tmp_path / "random_forest.json")
+    loaded = RandomForestRegressorModel.load_json(path)
+
+    np.testing.assert_array_equal(loaded.predict(X), forest.predict(X))
+    assert len(loaded.trees_) == 5

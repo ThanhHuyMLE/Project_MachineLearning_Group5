@@ -22,7 +22,7 @@ def _synthetic_data(n=80, n_features=5, seed=42):
     return X, y
 
 
-def test_torch_mlp_architecture_matches_numpy_mlp():
+def test_torch_mlp_has_expected_architecture():
     """Kiến trúc phải là Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear)."""
     model = MLPTorchRegressorModel()
     model.build_model(input_size=88)
@@ -116,7 +116,7 @@ def test_torch_mlp_metrics_reasonable_on_synthetic_data(tmp_path):
 
     Adam lr=0.001 cần đủ số bước để hội tụ (đã kiểm chứng: 500 epoch
     cho R2 0,96-0,99 trên 4 seed khác nhau); 30 epoch là chưa đủ cho
-    cả bản NumPy lẫn bản PyTorch nên không dùng làm ngưỡng ở đây.
+    bản PyTorch nên không dùng làm ngưỡng ở đây.
     """
     X, y = _synthetic_data(n=200, seed=0)
     model = MLPTorchRegressorModel(

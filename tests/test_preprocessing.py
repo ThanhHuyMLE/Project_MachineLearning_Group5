@@ -17,6 +17,7 @@ from house_price.preprocessing import (
     engineer_features,
     output_feature_names,
     prepare_data,
+    prepare_feature_frame,
     split_features_target,
     split_train_val_test,
 )
@@ -77,6 +78,15 @@ def test_clean_dataset_drops_id_date_and_index_columns():
     assert "house_age" in cleaned.columns
     assert "was_renovated" in cleaned.columns
     assert "sqft_per_bedroom" in cleaned.columns
+
+
+def test_prepare_feature_frame_accepts_unlabeled_inference_data():
+    frame = _sample_frame(n=5).drop(columns=["price"])
+
+    features = prepare_feature_frame(frame)
+
+    assert list(features.columns) == FEATURE_COLUMNS
+    assert features.shape == (5, len(FEATURE_COLUMNS))
 
 
 def test_engineer_features_house_age_clips_negative():

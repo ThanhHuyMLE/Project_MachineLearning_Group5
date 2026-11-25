@@ -11,11 +11,9 @@ import pytest
 
 from house_price import train_evaluate
 from house_price.evaluation import regression_metrics
-from house_price.models.mlp import MLPRegressorModel
 from house_price.models.mlp_torch import MLPTorchRegressorModel
 from house_price.train_evaluate import (
     MODEL_NAMES,
-    NUMPY_MLP_NAME,
     build_models,
     train_and_evaluate,
 )
@@ -95,9 +93,8 @@ def _install_fake_pipeline(monkeypatch, captured):
             "y_test": np.array([300.0, 400.0]),
         }
 
-    def fake_train_and_evaluate(data, output_dir, evaluation_split="val", include_numpy_mlp=False):
+    def fake_train_and_evaluate(data, output_dir, evaluation_split="val"):
         captured["evaluation_split"] = evaluation_split
-        captured["include_numpy_mlp"] = include_numpy_mlp
         table = pd.DataFrame(
             [
                 {
@@ -116,34 +113,6 @@ def _install_fake_pipeline(monkeypatch, captured):
     monkeypatch.setattr(train_evaluate, "train_and_evaluate", fake_train_and_evaluate)
 
 
-def test_mlp_train_and_evaluate_end_to_end(synthetic_dataset, tmp_path):
-    """Kiểm tra vòng đời build -> fit -> predict -> lưu tham số của MLPRegressorModel."""
-    save_json = tmp_path / "mlp_params.json"
-    model = MLPRegressorModel(
-        hidden_layer_sizes=(8, 4),
-        learning_rate=0.01,
-        epochs=15,
-        batch_size=16,
-        random_state=42,
-        save_path=save_json,
-    )
-    model.build_model(input_size=synthetic_dataset["X_train"].shape[1])
-    model.fit(
-        synthetic_dataset["X_train"],
-        synthetic_dataset["y_train"],
-        X_val=synthetic_dataset["X_val"],
-        y_val=synthetic_dataset["y_val"],
-    )
-
-    preds = model.predict(synthetic_dataset["X_test"])
-
-    assert preds.shape == synthetic_dataset["y_test"].shape
-    assert np.isfinite(preds).all()
-    assert save_json.exists()
-    assert len(model.history_["loss"]) == 15
-    assert len(model.history_["val_loss"]) == 15
-
-
 def test_train_evaluate_module_has_callable_entry():
     """Xác minh module train_evaluate có hàm thực thi chính và không lỗi khi import."""
     public_callables = [
@@ -160,42 +129,24 @@ def test_build_models_defaults_to_four_official_models_with_pytorch_mlp(tmp_path
 
     assert list(models) == MODEL_NAMES
     assert len(models) == 4
-    assert NUMPY_MLP_NAME not in models
     assert isinstance(models["PyTorch MLP Regression"], MLPTorchRegressorModel)
 
 
-def test_build_models_include_numpy_mlp_adds_legacy_model_outside_official_list(tmp_path):
-    """Cờ include_numpy_mlp thêm MLP NumPy vào cuối, ngoài 4 mô hình chính thức."""
-    models = build_models(tmp_path, include_numpy_mlp=True)
-
-    assert len(models) == 5
-    assert list(models)[:4] == MODEL_NAMES
-    assert list(models)[4] == NUMPY_MLP_NAME
-    assert isinstance(models[NUMPY_MLP_NAME], MLPRegressorModel)
-    assert models[NUMPY_MLP_NAME].save_path == tmp_path / "mlp_parameters.json"
-
-
-def test_train_and_evaluate_default_excludes_numpy_mlp(synthetic_dataset, tmp_path):
-    """Run mặc định trả 4 dòng chính thức và không lưu mlp_parameters.json."""
+def test_train_and_evaluate_returns_official_models(synthetic_dataset, tmp_path):
+    """Run trả 4 mô hình chính thức và các artifact tương ứng."""
     table, predictions = train_and_evaluate(synthetic_dataset, tmp_path)
 
     assert len(table) == 4
     assert set(table["model"]) == set(MODEL_NAMES)
     assert set(predictions) == set(MODEL_NAMES)
-    assert NUMPY_MLP_NAME not in set(table["model"])
-    assert not (tmp_path / "mlp_parameters.json").exists()
     assert (tmp_path / "mlp_torch_parameters.pt").is_file()
-
-
-def test_train_and_evaluate_include_numpy_mlp_returns_five_models(synthetic_dataset, tmp_path):
-    """Run với include_numpy_mlp=True trả thêm MLP NumPy và lưu tham số của nó."""
-    table, predictions = train_and_evaluate(synthetic_dataset, tmp_path, include_numpy_mlp=True)
-
-    assert len(table) == 5
-    assert set(table["model"]) == set(MODEL_NAMES) | {NUMPY_MLP_NAME}
-    assert set(predictions) == set(MODEL_NAMES) | {NUMPY_MLP_NAME}
-    assert (tmp_path / "mlp_parameters.json").is_file()
-    assert (tmp_path / "mlp_torch_parameters.pt").is_file()
+    for filename in (
+        "pytorch_mlp_regression_parameters.json",
+        "linear_regression_parameters.json",
+        "decision_tree_regression_parameters.json",
+        "random_forest_regression_parameters.json",
+    ):
+        assert (tmp_path / filename).is_file()
 
 
 def test_train_and_evaluate_validation_does_not_leak_into_linear_tree_forest_fit(
@@ -275,7 +226,6 @@ def test_main_defaults_to_validation_split(monkeypatch, tmp_path, capsys):
 
     assert train_evaluate.main(["--data", "dummy.csv", "--output-dir", str(tmp_path)]) == 0
     assert captured["evaluation_split"] == "val"
-    assert captured["include_numpy_mlp"] is False
     assert (tmp_path / "metrics_val.csv").is_file()
     assert (tmp_path / "predictions_val.csv").is_file()
     assert not (tmp_path / "metrics.csv").exists()
@@ -305,7 +255,6 @@ def test_main_writes_test_split_files(monkeypatch, tmp_path, capsys):
         == 0
     )
     assert captured["evaluation_split"] == "test"
-    assert captured["include_numpy_mlp"] is False
     assert (tmp_path / "metrics.csv").is_file()
     assert (tmp_path / "predictions.csv").is_file()
     assert not (tmp_path / "metrics_val.csv").exists()
@@ -314,27 +263,6 @@ def test_main_writes_test_split_files(monkeypatch, tmp_path, capsys):
     saved = pd.read_csv(tmp_path / "predictions.csv")
     assert list(saved["y_true"]) == [300.0, 400.0]
     assert "test (final)" in capsys.readouterr().out
-
-
-def test_main_include_numpy_mlp_flag_passed_through(monkeypatch, tmp_path):
-    """main() với --include-numpy-mlp phải truyền cờ xuống train_and_evaluate."""
-    captured = {}
-    _install_fake_pipeline(monkeypatch, captured)
-
-    assert (
-        train_evaluate.main(
-            [
-                "--data",
-                "dummy.csv",
-                "--output-dir",
-                str(tmp_path),
-                "--include-numpy-mlp",
-            ]
-        )
-        == 0
-    )
-    assert captured["evaluation_split"] == "val"
-    assert captured["include_numpy_mlp"] is True
 
 
 def test_main_rejects_invalid_evaluation_split(tmp_path):

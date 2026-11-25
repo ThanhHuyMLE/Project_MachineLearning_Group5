@@ -56,6 +56,19 @@ def test_torch_mlp_round_trip_predictions_match(tmp_path):
     assert len(loaded.history_["loss"]) == 5
 
 
+def test_torch_mlp_json_round_trip_predictions_match(tmp_path):
+    model, X, _ = _trained_model(tmp_path)
+    json_path = model.export_json(
+        tmp_path / "mlp_torch_parameters.json",
+        feature_names=[f"x{i}" for i in range(X.shape[1])],
+    )
+
+    loaded = MLPTorchRegressorModel.load_json(json_path)
+
+    np.testing.assert_allclose(loaded.predict(X[:10]), model.predict(X[:10]), atol=1e-6)
+    assert loaded._input_size == X.shape[1]
+
+
 def test_torch_mlp_load_uses_weights_only(tmp_path):
     """``load()`` phải nạp checkpoint với ``weights_only=True``."""
     source_path = (
