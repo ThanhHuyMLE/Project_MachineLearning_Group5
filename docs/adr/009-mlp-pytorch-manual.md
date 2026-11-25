@@ -12,11 +12,8 @@ autograd (`loss.backward()`) và `torch.optim.Adam` nên sinh viên
 không nhìn thấy đạo hàm và bước cập nhật tham số chạy như thế nào.
 Trong buổi vấn đáp, giảng viên có thể hỏi "cái nào mới là backprop
 viết tay, PyTorch cung cấp cái gì" - câu hỏi này không trả lời được
-chỉ bằng bản chính thức. Đồng thời, benchmark lúc đó vẫn liệt kê bản
-NumPy MLP trong bảng chính thức, dù quyết định của ADR-008 là benchmark
-chạy cả hai bản cạnh nhau; cần chốt rõ bảng chính thức chỉ có 4 mô hình
-(PyTorch MLP + Linear + Decision Tree + Random Forest) và bản NumPy
-MLP đứng ngoài bảng, chỉ chạy kèm để đối chiếu.
+chỉ bằng bản chính thức. Benchmark được chốt gồm 4 mô hình: PyTorch
+MLP, Linear, Decision Tree và Random Forest.
 
 Vai trò của 4 nhóm mô hình, chốt trong ADR này:
 
@@ -24,7 +21,6 @@ Vai trò của 4 nhóm mô hình, chốt trong ADR này:
 |---|---|---|---|
 | Standard PyTorch MLP | PyTorch | Autograd (`loss.backward()`) | Workflow và benchmark chính thức của Lab 4 |
 | Manual PyTorch MLP | PyTorch Tensor | Chain rule viết tay | Bằng chứng hiểu thuật toán và để kiểm chứng |
-| NumPy MLP | NumPy | Chain rule viết tay | Đối chiếu legacy mang tính giáo dục |
 | Các mô hình hồi quy còn lại (Linear, Decision Tree, Random Forest) | NumPy | Thuật toán viết tay | Baseline đối chiếu chính thức |
 
 Bản manual là bằng chứng trung tâm cho thấy nhóm hiểu backprop và
@@ -42,11 +38,7 @@ toàn viết tay" vì nó dùng autograd và `torch.optim.Adam` của PyTorch.
 2. **Mở rộng bản PyTorch chính thức bằng cờ "manual":** làm `fit`
    của bản chính thức có hai nhánh, code khó đọc và dễ lẫn lộn khi
    vấn đáp (không biết nhánh nào đang chạy).
-3. **Dùng bản NumPy làm bản "viết tay" duy nhất:** bản NumPy đã có
-   sẵn backprop viết tay, nhưng nó dùng mảng NumPy, không trả lời
-   được câu hỏi về tensor, dtype, device và autograd của PyTorch
-   trong mục 10-11 của spec lab 4.
-4. **Đưa bản viết tay vào benchmark chính thức thay bản PyTorch:**
+3. **Đưa bản viết tay vào benchmark chính thức thay bản PyTorch:**
    sai vai trò: benchmark đo mô hình dùng thật (autograd + Adam của
    torch), còn bản viết tay chỉ để chứng minh hiểu cơ chế.
 
@@ -54,7 +46,7 @@ toàn viết tay" vì nó dùng autograd và `torch.optim.Adam` của PyTorch.
 
 - Thêm `MLPTorchManualModel` trong
   `src/house_price/models/mlp_torch_manual.py`, cùng kiến trúc
-  32-16-1 và cùng cấu hình với hai bản MLP còn lại (Adam lr 0.001,
+  32-16-1 và cùng cấu hình với bản MLP chính thức (Adam lr 0.001,
   beta1 0.9, beta2 0.999, epsilon 1e-8, epochs 100, batch 32, seed
   42), cùng interface `__init__` -> `build_model` -> `fit` ->
   `predict` và cùng `save`/`load` thành `.pt`.
@@ -72,9 +64,7 @@ toàn viết tay" vì nó dùng autograd và `torch.optim.Adam` của PyTorch.
   `src/house_price/models/__init__.py` để test và demo trực tiếp.
 - Benchmark chính thức chốt 4 mô hình: PyTorch MLP Regression,
   Linear Regression, Decision Tree Regression, Random Forest
-  Regression. Bản NumPy MLP (`MLP Regression`) đứng ngoài bảng,
-  chỉ chạy kèm bằng cờ `--include-numpy-mlp` của
-  `train_evaluate.py` để đối chiếu với các lần chạy cũ.
+  Regression.
 - Checkpoint của bản manual lưu trực tiếp danh sách tensor
   `weights`/`biases` (không dùng `state_dict`, vì bản này không có
   `nn.Module`); checkpoint của bản chính thức lưu `state_dict`.
@@ -86,10 +76,8 @@ toàn viết tay" vì nó dùng autograd và `torch.optim.Adam` của PyTorch.
 - Gradient check (mạng 3 -> 4 -> 1, so với finite difference):
   sai số tương đối tối đa 1,739e-03, xem
   `tests/test_mlp_torch_manual.py::test_manual_gradient_matches_finite_difference`.
-  Sai số lớn hơn nhiều so với bản NumPy (1,7e-08) vì tensor float32
-  của torch (bản NumPy dùng float64); đây là sai số làm tròn của
-  float32, không phải lỗi chain rule - test vẫn pass với ngưỡng
-  dành cho float32.
+  Sai số này phù hợp với tensor float32 và ngưỡng kiểm thử dành cho
+  float32.
 - Học ánh xạ tuyến tính trên dữ liệu synthetic: R2 0,9834, xem
   `tests/test_mlp_torch_manual.py::test_manual_learns_linear_mapping`.
 - Training path không dùng autograd: test
@@ -103,16 +91,15 @@ toàn viết tay" vì nó dùng autograd và `torch.optim.Adam` của PyTorch.
 - Benchmark chính thức ngày 19/11/2026 (test 3.241 dòng, seed 42):
   RF R2 0,8638, PyTorch MLP R2 0,8334, Linear R2 0,8119, DT R2
   0,7314; validation: RF 0,8617, PyTorch MLP 0,8287, Linear 0,8091,
-  DT 0,7198. Bản NumPy MLP ngoài bảng: R2 validation 0,8310. Chi
-  tiết xem `docs/progress_results.md`.
+  DT 0,7198. Chi tiết xem `docs/progress_results.md`.
 
 ## Đánh đổi chấp nhận
 
 - Được: có bằng chứng viết tay cho backprop và Adam bằng tensor
   torch; trả lời được câu hỏi vấn đáp "autograd làm gì thay mình";
   benchmark chính thức gọn và đúng vai trò từng bản.
-- Mất: thêm một bản cài đặt thứ ba cùng kiến trúc phải duy trì;
-  bản manual không hứa parity bit-for-bit với hai bản còn lại
+- Mất: thêm một bản cài đặt cùng kiến trúc phải duy trì;
+  bản manual không hứa parity bit-for-bit với bản chính thức
   (thứ tự phép tính float32, cách xáo trộn batch và khởi tạo khác
   nhau nên số có thể lệch nhỏ).
 - Rủi ro còn lại: người đọc có thể nhầm bản manual là mô hình

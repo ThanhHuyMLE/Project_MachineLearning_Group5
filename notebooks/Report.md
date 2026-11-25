@@ -2,7 +2,7 @@
 
 ## 1. Mục tiêu & Tổng quan dữ liệu
 
-Bài tập xây dựng và đánh giá mô hình hồi quy Multi-Layer Perceptron (`MLPRegressorModel` cài đặt thủ công bằng NumPy) để dự đoán giá bán nhà (`price`, đơn vị USD) tại quận King County, bang Washington, Hoa Kỳ.
+Bài tập xây dựng và đánh giá mô hình hồi quy Multi-Layer Perceptron bằng PyTorch để dự đoán giá bán nhà (`price`, đơn vị USD) tại quận King County, bang Washington, Hoa Kỳ.
 
 - **Bộ dữ liệu:** `data/kc_house_data_NaN/data_raw/kc_house_data_NaN.csv` gồm **21.613 giao dịch** (từ `20140502` đến `20150527`) và **22 cột** ban đầu (18 đặc trưng gốc, `price`, `Unnamed: 0`, `id`, `date`).
 - **Phân bố giá bán (`price`):**
@@ -32,10 +32,10 @@ Toàn bộ pipeline trong `src/house_price/preprocessing.py` chỉ `fit` trên t
 4. **Chuẩn hóa & Mã hóa:**
    - 18 đặc trưng số chuẩn hóa bằng `StandardScaler` + 70 mã `zipcode` mã hóa `OneHotEncoder(handle_unknown="ignore")` $\rightarrow$ Đầu vào chuẩn gồm **88 đặc trưng**.
 
-## 3. Kiến trúc Mô hình MLP (`src/house_price/models/mlp.py`)
+## 3. Kiến trúc Mô hình MLP (`src/house_price/models/mlp_torch.py`)
 
 - **Cấu trúc mạng:** `Input -> Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear)` với khởi tạo trọng số **He initialization**.
-- **Tối ưu hóa:** Tự cài đặt Forward Propagation, Backpropagation (đạo hàm MSE và ReLU) và bộ tối ưu **Adam** (`learning_rate = 0.001`, `beta1 = 0.9`, `beta2 = 0.999`, `epsilon = 1e-8`, `batch_size = 32`, `epochs = 100`, `random_state = 42`).
+- **Tối ưu hóa:** PyTorch autograd và **Adam** (`learning_rate = 0.001`, `batch_size = 32`, `epochs = 100`, `random_state = 42`).
 
 ## 4. Kết quả Thực nghiệm & Phân tích
 
@@ -43,16 +43,16 @@ Toàn bộ pipeline trong `src/house_price/preprocessing.py` chỉ `fit` trên t
 
 | Mô hình | MSE | RMSE (USD) | MAE (USD) | R2 | MAPE |
 |---|---:|---:|---:|---:|---:|
-| MLP Regression | 23.679.224.804,72 | 153.880,55 | 90.391,93 | 0,8354 | 18,0595% |
+| PyTorch MLP Regression | 23.956.240.614,18 | 154.778,04 | 89.838,73 | 0,8334 | 17,7992% |
 | Linear Regression | 27.053.237.258,13 | 164.478,68 | 99.082,41 | 0,8119 | 20,2726% |
 | Decision Tree Regression | 38.626.368.259,00 | 196.535,92 | 99.880,12 | 0,7314 | 18,2854% |
 | **Random Forest Regression** | **19.584.927.856,05** | **139.946,16** | **77.253,52** | **0,8638** | **14,6857%** |
 
-Thời gian fit trong lần chạy ngày 17/11/2026 (tổng thời gian 294,13 giây): Random Forest 251,47 giây; MLP 26,18 giây; Linear Regression 4,77 giây; Decision Tree 2,15 giây. MAPE đo trong lần chạy lại cùng cấu hình và cùng seed (MSE/RMSE/MAE/R2 khớp hệt lần chạy gốc, lệch 0).
+Thời gian fit trong lần chạy chính thức ngày 19/11/2026: Random Forest 106,12 giây; PyTorch MLP 35,40 giây; Linear Regression 1,54 giây; Decision Tree 0,52 giây.
 
 Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên không còn nguyên vẹn thống kê; các số trong bảng 4.1 là đo thật của lần chạy này nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
 
-- **Nhận xét:** Trên tập dữ liệu đã chuẩn hóa đầy đủ 88 đặc trưng, `Random Forest Regression` đạt kết quả tốt nhất (**$R^2 = 0,8638$**, RMSE `139.946,16 USD`, MAE `77.253,52 USD`). `MLP Regression` đạt **$R^2 = 0,8354$**, giảm **10.598,13 USD** ở chỉ số RMSE (-6,44%) và giảm **8.690,48 USD** ở chỉ số MAE (-8,77%) so với `Linear Regression` được cài đặt bằng thư viện NumPy ($R^2 = 0,8119$). Số Linear Regression Stage 03 dùng sklearn OLS ($R^2 = 0,8154$) chỉ giữ làm lịch sử trong `docs/progress_results.md`, không dùng trong bảng này. Các tầng ẩn ReLU đã học được quan hệ phi tuyến giữa quy mô căn nhà, chất lượng xây dựng và khu vực `zipcode`.
+- **Nhận xét:** Trên tập dữ liệu đã chuẩn hóa đầy đủ 88 đặc trưng, `Random Forest Regression` đạt kết quả tốt nhất (**$R^2 = 0,8638$**). `PyTorch MLP Regression` đứng thứ hai với **$R^2 = 0,8334$**, vượt `Linear Regression` ($R^2 = 0,8119$), cho thấy các tầng ẩn ReLU học được quan hệ phi tuyến trong dữ liệu.
 
 ### 4.2. Thí nghiệm bổ sung: đối chiếu 4 mô hình trên 19 đặc trưng thô chưa chuẩn hóa
 

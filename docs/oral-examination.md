@@ -54,8 +54,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    RMSE, MAE, R2. Nếu ép thành phân loại (ví dụ "đắt/rẻ") thì mất
    thông tin về mức giá cụ thể. Tầng output của MLP dùng Linear để
    trả giá trị không giới hạn, không dùng Softmax như phân loại.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel._forward` (tầng cuối Linear);
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch.py`,
+   `_MLPNetwork.forward` (tầng cuối Linear);
    `src/house_price/evaluation.py`, `regression_metrics`.
 4. **Hiểu lầm thường gặp:** "Dùng accuracy để đánh giá hồi quy." Sai:
    accuracy đếm đúng/sai trên nhãn rời rạc, không có ý nghĩa khi đầu
@@ -98,8 +98,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    (Cặp số test này chỉ minh họa overfit; việc chọn `max_depth=8`
    dựa trên số validation: R2 0,7198 so với 0,6926, xem
    `scripts/compare_validation.py`.)
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel.fit` (ghi `history_` gồm `loss` và `val_loss`);
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch.py`,
+   `MLPTorchRegressorModel.fit` (ghi `history_` gồm `loss` và `val_loss`);
    `src/house_price/visualization.py`, `plot_training_history`.
 4. **Hiểu lầm thường gặp:** "Train loss giảm là mô hình tốt." Sai:
    train loss giảm không đảm bảo tổng quát tốt; phải xem validation
@@ -189,7 +189,9 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    MLP và Linear Regression nhạy với thang đo nên bắt buộc chuẩn hóa.
 2. **Giải thích sâu:** `sqft_lot` lên tới 1.651.359 trong khi cờ nhị
    phân chỉ 0/1: không chuẩn hóa thì gradient bị chi phối bởi đặc
-   trưng lớn, MLP hội tụ kém (R2 0,6024 trên 19 cột thô so với 0,8354 của bản NumPy trên pipeline 88 cột đã chuẩn hóa; hai số thuộc hai pipeline khác nhau nên chỉ mang tính minh họa ablation, không phải so sánh trực tiếp có kiểm soát). Cây quyết định không cần chuẩn hóa vì ngưỡng chia
+   trưng lớn, MLP hội tụ kém (thí nghiệm cũ trên 19 cột thô đạt R2
+   0,6024; số này chỉ minh họa ablation, không dùng làm benchmark).
+   Cây quyết định không cần chuẩn hóa vì ngưỡng chia
    chỉ so sánh thứ tự, nhưng pipeline vẫn chuẩn hóa để dùng chung một
    tập dữ liệu cho cả 4 mô hình.
 3. **Tham chiếu source:** `src/house_price/preprocessing.py`,
@@ -308,8 +310,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    `W` có shape `(88, 32)` và `b` có shape `(1, 32)`; toàn mạng có
    3 ma trận trọng số `(88, 32)`, `(32, 16)`, `(16, 1)`. Viết dạng
    ma trận thay vì vòng lặp từng neuron là lý do code dùng NumPy.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel._forward` (`z = current @ weight + bias`).
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch_manual.py`,
+   `MLPTorchManualModel._forward` (`z = current @ weight + bias`).
 4. **Hiểu lầm thường gặp:** "Mỗi neuron học một đặc trưng riêng."
    Sai: mỗi neuron học một tổ hợp tuyến tính của toàn bộ đầu vào
    tầng trước, không gắn với một đặc trưng gốc cụ thể nào.
@@ -326,8 +328,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    tạo ra hàm phi tuyến từng đoạn đủ linh hoạt để xấp xỉ quan hệ giá
    nhà. Đó là lý do MLP vượt Linear Regression (bản PyTorch chính
    thức R2 0,8334 so với Linear 0,8119 trên test chính thức).
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel._relu` và `_relu_derivative`.
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch_manual.py`,
+   `MLPTorchManualModel._relu` và `_relu_derivative`.
 4. **Hiểu lầm thường gặp:** "Thêm tầng là đủ, hàm kích hoạt không quan
    trọng." Sai: chính hàm kích hoạt mới tạo ra phi tuyến; tầng tuyến
    tính thêm vào không thêm khả năng biểu diễn.
@@ -344,8 +346,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    "dying ReLU": nếu trọng số cập nhật làm `z` luôn âm thì gradient
    bằng 0 mãi và neuron không hồi phục. Dự án dùng ReLU ở cả hai tầng
    ẩn và khởi tạo He để giảm rủi ro này.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel._relu`, `_relu_derivative`, `build_model`
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch_manual.py`,
+   `MLPTorchManualModel._relu`, `_relu_derivative`, `build_model`
    (He init).
 4. **Hiểu lầm thường gặp:** "ReLU không có đạo hàm tại 0 nên không
    huấn luyện được." Sai: code định nghĩa đạo hàm tại 0 bằng 0 (quy
@@ -364,8 +366,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    trong mạng (tầng ẩn dùng ReLU, tầng cuối dùng Linear); nó chỉ xuất
    hiện ở đây để trả lời lý thuyết cho đúng.
 3. **Tham chiếu source:** Không có trong code (chỉ lý thuyết). Mạng
-   thật xem `src/house_price/models/mlp.py`,
-   `MLPRegressorModel._forward` (ReLU ở tầng ẩn, Linear ở tầng cuối).
+   thật xem `src/house_price/models/mlp_torch.py`,
+   `_MLPNetwork.forward` (ReLU ở tầng ẩn, Linear ở tầng cuối).
 4. **Hiểu lầm thường gặp:** "Sigmoid cho ra 0 hoặc 1 nên dùng làm
    đầu ra phân loại nhị phân." Sai: Sigmoid cho ra xác suất trong
    (0, 1), không bao giờ đúng bằng 0 hay 1; muốn nhãn 0/1 phải đặt
@@ -385,9 +387,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    thành phần nào bằng 1. Softmax dùng cho phân loại đa lớp; bài hồi
    quy này KHÔNG dùng Softmax (tầng cuối là Linear, một đầu ra).
 3. **Tham chiếu source:** Không có trong code (chỉ lý thuyết). Tầng
-   cuối thật xem `src/house_price/models/mlp.py`,
-   `MLPRegressorModel._forward` (nhánh `layer_index == len(weights)-1`
-   dùng Linear).
+   cuối thật xem `src/house_price/models/mlp_torch.py`,
+   `_MLPNetwork.forward` (tầng cuối dùng Linear).
 4. **Hiểu lầm thường gặp:** "Softmax cho ra vector mà mỗi phần tử
    bằng 1." Sai: chỉ TỔNG các phần tử bằng 1; mỗi phần tử là một xác
    suất trong (0, 1), và chính việc cộng lại bằng 1 mới làm nó thành
@@ -404,8 +405,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    `A⁽²⁾ = ReLU(Z⁽²⁾)`, `ŷ = A⁽²⁾ W⁽³⁾ + b⁽³⁾`. Code lưu
    `activations` (gồm cả `X` đầu vào) và `pre_activations` (các `Z`)
    vào `cache` trả về cùng dự đoán.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel._forward`.
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch_manual.py`,
+   `MLPTorchManualModel._forward`.
 4. **Hiểu lầm thường gặp:** "Forward chỉ cần tính dự đoán, không cần
    lưu gì." Sai: backprop cần `A` của tầng trước và `Z` để tính đạo
    hàm ReLU; không lưu cache thì phải tính lại toàn bộ forward.
@@ -421,8 +422,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    `dW⁽ˡ⁾ = (A⁽ˡ⁻¹⁾)ᵀ δ⁽ˡ⁾` và `db⁽ˡ⁾` là tổng `δ⁽ˡ⁾` theo batch.
    Code lặp từ tầng cuối về tầng đầu, tính gradient cho tầng hiện tại
    trước rồi mới truyền `delta` về tầng trước.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel._backward`.
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch_manual.py`,
+   `MLPTorchManualModel._backward`.
 4. **Hiểu lầm thường gặp:** "Backprop là một thuật toán tối ưu riêng."
    Sai: backprop chỉ là cách tính gradient hiệu quả bằng quy tắc
    chuỗi; việc cập nhật tham số do optimizer (ở đây là Adam) đảm nhiệm.
@@ -440,8 +441,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    được bước lớn lên; nhờ `m`, hướng cập nhật mượt hơn SGD thường.
    Code dùng `beta1=0.9`, `beta2=0.999`, `epsilon=1e-8`,
    `learning_rate=0.001`, bộ đếm `t` tăng theo mỗi mini-batch.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel._adam_update`.
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch_manual.py`,
+   `MLPTorchManualModel._adam_update`.
 4. **Hiểu lầm thường gặp:** "Adam có bias-correction nên không cần
    learning rate nữa." Sai: bias-correction chỉ sửa độ lệch của `m`,
    `v` lúc đầu (khi chúng khởi tạo bằng 0); learning rate `η` vẫn là
@@ -458,8 +459,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    tắt dần; quá lớn, tín hiệu bùng nổ và gradient mất ổn định. Code
    dùng `rng.normal(loc=0.0, scale=sqrt(2.0/fan_in))` với `fan_in` là
    số đầu vào của tầng.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel.build_model`.
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch.py`,
+   `MLPTorchRegressorModel.build_model`.
 4. **Hiểu lầm thường gặp:** "Khởi tạo trọng số bằng 0 là an toàn nhất."
    Sai: khởi tạo mọi trọng số bằng 0 làm mọi neuron trong một tầng
    nhận cùng gradient và học giống hệt nhau (đối xứng không phá vỡ
@@ -477,9 +478,9 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    nhỏ thì 100 epoch không đủ hội tụ (bằng chứng: MLP 19 cột chưa
    scale sau 200 epoch vẫn train MSE 50,8 tỷ). Mỗi epoch code xáo
    trộn thứ tự mẫu rồi chia mini-batch.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel.fit` (vòng lặp epoch, `rng.permutation`, chia
-   batch) và `__init__` (mặc định epochs, batch_size, learning_rate).
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch.py`,
+   `MLPTorchRegressorModel.fit` (vòng lặp epoch và mini-batch) cùng
+   `__init__` (mặc định epochs, batch_size, learning_rate).
 4. **Hiểu lầm thường gặp:** "Tăng epoch lúc nào cũng tốt hơn." Sai:
    quá nhiều epoch trên dữ liệu hữu hạn dẫn đến overfit; phải theo
    dõi val_loss và dừng khi nó không cải thiện (early stopping, xem
@@ -498,8 +499,9 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    số của bản NumPy (float64); bản PyTorch viết tay
    (`MLPTorchManualModel`, tensor float32) có gradient check riêng
    với sai số tối đa 1,739e-03, xem câu G12.
-3. **Tham chiếu source:** `tests/test_mlp_gradient.py`;
-   `src/house_price/models/mlp.py`, `MLPRegressorModel._backward`.
+3. **Tham chiếu source:** `tests/test_mlp_torch_manual.py`;
+   `src/house_price/models/mlp_torch_manual.py`,
+   `MLPTorchManualModel._backward`.
 4. **Hiểu lầm thường gặp:** "Gradient check để chạy mỗi lần huấn
    luyện." Sai: gradient check rất chậm (mỗi tham số cần 2 lần
    forward) nên chỉ dùng một lần để kiểm chứng code, không dùng trong
@@ -517,8 +519,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    (`sin(ωx)`) cho tín hiệu liên tục; dự án dùng ReLU, không dùng
    SIREN. Hướng cải tiến đã ghi: bổ sung Early Stopping dựa trên
    `val_loss` và thử biến đổi `log1p(price)`.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`,
-   `MLPRegressorModel.fit` (không có early stopping, không có
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch.py`,
+   `MLPTorchRegressorModel.fit` (không có early stopping, không có
    Dropout); `notebooks/Report.md` mục 5 (hướng cải tiến).
 4. **Hiểu lầm thường gặp:** "Kể tên kỹ thuật trong báo cáo là coi như
    đã dùng." Sai: phải phân biệt rõ đã implement với chỉ đề xuất;
@@ -528,7 +530,7 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
 
 1. **Đáp ngắn:** Vanishing Gradient là gradient co dần về 0 khi lan ngược qua các tầng, tầng đầu hầu như không học được gì; Exploding Gradient là ngược lại, gradient phình to đến mức trọng số nhảy loạn và loss thành NaN. Cả hai đều do quy tắc dây chuyền (chain rule) nhân nhiều đạo hàm với nhau qua nhiều tầng: nhân nhiều số nhỏ hơn 1 thì về 0, nhân nhiều số lớn hơn 1 thì bùng nổ.
 2. **Giải thích sâu:** Khi backprop, gradient ở tầng `l` bằng tích các đạo hàm của mọi tầng sau nó. Với Sigmoid, đạo hàm tối đa chỉ 0,25 nên qua 10 tầng gradient đã co khoảng `0,25^10`, tức tầng đầu gần như đứng yên dù tầng cuối vẫn học tốt; thêm nữa Sigmoid bão hòa ở hai đầu làm đạo hàm càng gần 0. Ngược lại, nếu trọng số khởi tạo quá lớn thì tích này lớn dần theo từng tầng và gradient nổ. Trong dự án này rủi ro thực tế thấp vì mạng nông (chỉ 2 tầng ẩn) và đã dùng đúng 3 cách khắc phục: ReLU có đạo hàm bằng 1 ở phía dương nên không co gradient như Sigmoid (xem C3); khởi tạo He `N(0, sqrt(2/fan_in))` giữ phương sai tín hiệu ổn định qua các tầng ReLU (xem C9); Adam tự co bước cập nhật theo độ lớn gradient nên gradient lớn bất thường cũng không làm trọng số nhảy quá xa. Nếu mạng sâu hơn thì cần thêm Batch Normalization, gradient clipping (cắt gradient vượt ngưỡng), hoặc residual connection.
-3. **Tham chiếu source:** `src/house_price/models/mlp.py`, `MLPRegressorModel._relu`, `_relu_derivative`, `build_model` (khởi tạo He), `_backward` (nhân đạo hàm theo chain rule); `tests/test_mlp_gradient.py` (đối chiếu gradient backprop với gradient số, chứng tỏ gradient tính đúng và không bị co/nổ bất thường ở độ sâu này); lịch sử `val_loss` theo epoch (xem D4) cho thấy loss giảm đều, không có dấu hiệu tầng đầu đứng yên hay loss vọt lên NaN.
+3. **Tham chiếu source:** `src/house_price/models/mlp_torch_manual.py`, `MLPTorchManualModel._relu`, `_relu_derivative`, `build_model`, `_backward`; `tests/test_mlp_torch_manual.py`; lịch sử `val_loss` theo epoch (xem D4).
 4. **Hiểu lầm thường gặp:** "Vanishing Gradient nghĩa là mô hình không học được gì nữa." Sai: chỉ các tầng đầu học rất chậm, tầng cuối vẫn học bình thường, nên triệu chứng là loss giảm chậm dần rồi chững lại chứ không phải đứng yên hoàn toàn. "Càng nhiều tầng càng tốt." Sai: thêm tầng mà không có ReLU, khởi tạo đúng và chuẩn hóa thì chỉ làm gradient càng dễ biến mất hoặc bùng nổ, mô hình sâu hơn có thể tệ hơn mô hình nông.
 
 ---
@@ -545,7 +547,7 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    MAE; khoảng cách giữa chúng cho biết có nhiều lỗi lớn hay không.
    PyTorch MLP trên test: RMSE 154.778 USD, MAE 89.839 USD, chênh
    lệch lớn phản ánh phân bố giá lệch phải và các căn đắt có sai số
-   lớn (bản NumPy legacy: RMSE 153.881 USD, MAE 90.392 USD).
+   lớn.
    Đọc RMSE một mình sẽ đánh giá quá bi quan về căn nhà điển hình;
    đọc MAE một mình sẽ bỏ qua các lỗi lớn.
 3. **Tham chiếu source:** `src/house_price/evaluation.py`,
@@ -565,8 +567,7 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    R2 = 0 nghĩa là ngang baseline trung bình, R2 âm nghĩa là tệ hơn
    cả đoán trung bình. R2 = 0,8334 KHÔNG có nghĩa là dự đoán đúng
    83,34% số nhà, cũng không có nghĩa là sai số trung bình 16,66%.
-   (Số này là của PyTorch MLP chính thức trên test; bản NumPy legacy
-   là 0,8354.)
+   (Số này là của PyTorch MLP chính thức trên test.)
 3. **Tham chiếu source:** `src/house_price/evaluation.py`,
    `regression_metrics` (dùng `r2_score` của sklearn).
 4. **Hiểu lầm thường gặp:** "R2 là phần trăm dự đoán đúng." Sai:
@@ -579,8 +580,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    với giá thật. Chỉ có ý nghĩa khi giá thật khác 0 và không quá gần
    0; code trả `None` khi có giá trị thật bằng 0 để tránh chia cho 0.
 2. **Giải thích sâu:** MAPE của PyTorch MLP trên test là 17,80%,
-   nghĩa là sai số trung bình khoảng 18% giá thật (bản NumPy legacy
-   là 18,06%). MAPE dễ hiểu với người không chuyên (nói phần trăm
+   nghĩa là sai số trung bình khoảng 18% giá thật. MAPE dễ hiểu với
+   người không chuyên (nói phần trăm
    thay vì USD) nhưng nhạy với nhà rẻ: sai 20.000 USD trên nhà
    100.000 là 20%, trên nhà 1 triệu chỉ 2%.
    Vì giá nhà nhỏ nhất 75.000 USD (không có giá 0) nên MAPE tính
@@ -600,9 +601,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    khi train loss vẫn giảm là dấu hiệu overfit.
 2. **Giải thích sâu:** Trên dữ liệu này, điểm ở vùng giá cao thường
    lệch nhiều hơn vì ít mẫu nhà đắt và phương sai lớn (đuôi phải dài).
-   Bản NumPy MLP: train MSE từ 421 tỷ (epoch đầu) xuống 23,1 tỷ
-   (epoch cuối), test MSE 23,6 tỷ, gần với train MSE cuối nên mô hình
-   không overfit nặng. Nếu test MSE lớn hơn hẳn train MSE cuối thì
+   Cần so sánh train loss và validation loss. Nếu validation loss
+   lớn hơn hẳn train loss thì
    mới nghi overfit.
 3. **Tham chiếu source:** `src/house_price/visualization.py`,
    `plot_actual_vs_predicted`, `plot_training_history`;
@@ -769,7 +769,7 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    chính và mục Supplementary); `src/house_price/train_evaluate.py`,
    `train_and_evaluate`.
 4. **Hiểu lầm thường gặp:** "Random Forest R2 0,8802 chứng tỏ rừng tốt
-   hơn MLP R2 0,8354 (bản NumPy, thí nghiệm 19 cột thô)." Sai: hai số đo trên hai pipeline khác nhau
+   hơn MLP R2 0,8354 (thí nghiệm cũ)." Sai: hai số đo trên hai pipeline khác nhau
    (19 cột thô so với 88 cột chuẩn hóa); so sánh công bằng phải cùng
    split, cùng preprocessing, cùng tập test, tức bảng benchmark chính.
 
@@ -780,8 +780,8 @@ file này đi sâu hơn và bao phủ cả 4 Stage.
    tham số trên test.
 2. **Giải thích sâu:** Chỉ một điều khác nhau cũng làm so sánh vô
    nghĩa: khác split thì test khác nhau; khác preprocessing thì đầu
-   vào khác nhau (88 cột so với 19 cột thô đã cho ra R2 MLP bản NumPy 0,8354
-   so với 0,6024); khác metric thì không so được. `train_evaluate.py`
+   vào khác nhau (88 cột so với 19 cột thô); khác metric thì không
+   so được. `train_evaluate.py`
    đảm bảo điều này bằng cách chạy cả 4 mô hình trong một lần chạy
    trên cùng `prepare_data` và cùng `regression_metrics`, rồi sắp
    bảng theo MSE tăng dần.
@@ -813,10 +813,9 @@ khoảng 2-4 phút, tổng khoảng 20-25 phút):
 3. **Implementation:** MLP chính thức dùng PyTorch theo ADR-008
    (`MLPTorchRegressorModel`, 6 bước trong slide của cô giáo); 3 mô
    hình còn lại được cài đặt bằng thư viện NumPy theo ADR-007; bản
-   NumPy MLP giữ làm đối chiếu legacy, bản PyTorch viết tay chỉ phục
-   vụ học backprop (ADR-009). Mẫu chung `__init__` -> `build_model`
-   -> `fit` -> `predict`; gradient check bản NumPy (sai số 1,7e-08)
-   và bản viết tay (1,739e-03, float32); pipeline chống leakage
+   PyTorch viết tay phục vụ học backprop (ADR-009). Mẫu chung
+   `__init__` -> `build_model` -> `fit` -> `predict`; gradient check
+   bản viết tay (1,739e-03, float32); pipeline chống leakage
    (chia theo nhóm id, fit preprocessor chỉ trên train).
 4. **Demo:** Chạy `python -m house_price.train_evaluate`, xem bảng
    metric in ra và file `outputs/metrics.csv`; dự đoán giá một căn
@@ -829,9 +828,8 @@ khoảng 2-4 phút, tổng khoảng 20-25 phút):
    đo một lần trên test; giới hạn test-peeking của thí nghiệm bổ sung.
 7. **Results:** Bảng benchmark chính Stage 04 (4 mô hình chính thức,
    pipeline 88 cột, test 3.241 dòng, ngày 19/11/2026): RF R2 0,8638,
-   PyTorch MLP 0,8334, Linear 0,8119, Decision Tree 0,7314; bản NumPy
-   MLP ngoài bảng (R2 validation 0,8310; số test 0,8354 là lịch sử
-   17/11); thí nghiệm bổ sung 19 cột thô cho thấy vai trò của chuẩn
+   PyTorch MLP 0,8334, Linear 0,8119, Decision Tree 0,7314; thí
+   nghiệm bổ sung 19 cột thô cho thấy vai trò của chuẩn
    hóa (MLP 0,6024 trên 19 cột thô so với 0,8354 trên pipeline 88 cột;
    hai số thuộc hai pipeline khác nhau, chỉ mang tính minh họa
    ablation); cây depth 8 thắng cây không giới hạn (0,7314 so với
@@ -846,11 +844,11 @@ khoảng 2-4 phút, tổng khoảng 20-25 phút):
 
 ---
 
-## G. PyTorch và 3 bản MLP (mục 10-11 spec Lab 4)
+## G. PyTorch và 2 bản MLP (mục 10-11 spec Lab 4)
 
 Mục này trả lời các khái niệm PyTorch trong spec lab 4. Bản chính
-thức là PyTorch (`MLPTorchRegressorModel`); bản NumPy và bản PyTorch
-viết tay chỉ dùng để đối chiếu và học cơ chế (xem câu G12).
+thức là `MLPTorchRegressorModel`; bản PyTorch viết tay dùng để học
+cơ chế (xem câu G12).
 
 ### G1. Tensor khác NumPy array ở điểm nào? dtype và device là gì?
 
@@ -858,8 +856,7 @@ viết tay chỉ dùng để đối chiếu và học cơ chế (xem câu G12).
    ghi được đồ thị tính toán để autograd tự tính đạo hàm, và chạy
    được trên GPU. `dtype` là kiểu số của phần tử (ở đây float32);
    `device` là nơi tensor sống (CPU hay CUDA).
-2. **Giải thích sâu:** NumPy array không có khái niệm gradient:
-   muốn đạo hàm phải tự viết chain rule như bản NumPy của dự án.
+2. **Giải thích sâu:** NumPy array không có khái niệm gradient.
    Tensor có thêm thuộc tính `requires_grad` và `grad_fn`: khi
    `requires_grad=True`, mọi phép tính trên tensor được ghi lại
    thành đồ thị để `backward()` suy ra đạo hàm. Dự án chuyển mảng
@@ -940,9 +937,7 @@ viết tay chỉ dùng để đối chiếu và học cơ chế (xem câu G12).
    phân loại đa lớp (tổng bằng 1); cả hai đều sai bản chất bài
    hồi quy.
 3. **Tham chiếu source:** `src/house_price/models/mlp_torch.py`,
-   `_MLPNetwork.__init__` (chỉ thêm `nn.ReLU()` khi `fan_out != 1`);
-   `src/house_price/models/mlp.py`, `_forward` (nhánh tầng cuối
-   dùng Linear).
+   `_MLPNetwork.__init__` (chỉ thêm `nn.ReLU()` khi `fan_out != 1`).
 4. **Hiểu lầm thường gặp:** "Thêm ReLU ở tầng cuối cho dự đoán
    không âm thì tốt hơn." Sai: giá nhà luôn dương là tính chất của
    dữ liệu, không phải ràng buộc của hàm mất mát; ép ReLU ở output
@@ -958,14 +953,14 @@ viết tay chỉ dùng để đối chiếu và học cơ chế (xem câu G12).
    `(32, 32)` -> ReLU -> Linear -> `(32, 16)` -> ReLU -> Linear ->
    `(32, 1)`. Mỗi lần forward, autograd ghi lại phép tính của từng
    tầng vào đồ thị để `backward()` dùng sau. Bản PyTorch không lưu
-   cache `Z`/`A` như bản NumPy vì đồ thị autograd đã giữ các giá
+   cache `Z`/`A` như bản manual vì đồ thị autograd đã giữ các giá
    trị trung gian; bản viết tay phải tự lưu cache vì không có đồ thị.
 3. **Tham chiếu source:** `src/house_price/models/mlp_torch.py`,
    `_MLPNetwork.forward`; `src/house_price/models/mlp_torch_manual.py`,
    `_forward` (trả `(dự đoán, (activations, pre_activations))`).
-4. **Hiểu lầm thường gặp:** "Forward của PyTorch và NumPy khác
-   toán." Sai: cùng một phép toán, cùng kiến trúc; chỉ khác ai giữ
-   các giá trị trung gian (autograd giữ hộ, NumPy tự giữ trong cache).
+4. **Hiểu lầm thường gặp:** "Forward của hai bản PyTorch khác toán."
+   Sai: cùng phép toán và kiến trúc; chỉ khác việc autograd hay code
+   manual giữ các giá trị trung gian.
 
 ### G6. MSE là gì và vì sao dùng cho hồi quy?
 
@@ -975,7 +970,7 @@ viết tay chỉ dùng để đối chiếu và học cơ chế (xem câu G12).
 2. **Giải thích sâu:** `nn.MSELoss()` mặc định tính trung bình trên
    cả batch và mọi đầu ra, trả một số vô hướng để `backward()` tính
    được. Đạo hàm theo dự đoán là `(2/B)(ŷ - y)`, chính là điểm bắt
-   đầu của backprop ở cả ba bản MLP. MSE phạt lỗi lớn mạnh hơn lỗi
+   đầu của backprop ở cả hai bản MLP. MSE phạt lỗi lớn mạnh hơn lỗi
    nhỏ (bình phương), phù hợp khi nhà đắt đoán sai nhiều là nghiêm
    trọng. Nhược điểm: đơn vị USD² nên phải lấy căn (RMSE) mới đọc
    được bằng USD; và MSE nhạy với outlier (nhà 7,7 triệu USD).
@@ -998,13 +993,13 @@ viết tay chỉ dùng để đối chiếu và học cơ chế (xem câu G12).
    `θ <- θ - η m̂/(sqrt(v̂)+ε)`. Nhờ `v`, tham số có gradient lớn
    được bước nhỏ lại và ngược lại; nhờ `m`, hướng cập nhật mượt
    hơn. Dự án dùng `torch.optim.Adam(network.parameters(),
-   lr=0.001)` ở bản chính thức; hai bản viết tay dùng cùng công
-   thức với `beta1=0.9`, `beta2=0.999`, `epsilon=1e-8` trong
+   lr=0.001)` ở bản chính thức; bản manual dùng cùng công thức với
+   `beta1=0.9`, `beta2=0.999`, `epsilon=1e-8` trong
    `_adam_update`. Adam không tính gradient, nó chỉ tiêu thụ
    gradient mà backprop/autograd đã tính.
 3. **Tham chiếu source:** `src/house_price/models/mlp_torch.py`,
-   `fit` (bước 3: `torch.optim.Adam`); `src/house_price/models/mlp.py`
-   và `mlp_torch_manual.py`, `_adam_update`.
+   `fit` (bước 3: `torch.optim.Adam`);
+   `src/house_price/models/mlp_torch_manual.py`, `_adam_update`.
 4. **Hiểu lầm thường gặp:** "Adam là một dạng backprop." Sai:
    backprop tính gradient, Adam dùng gradient để cập nhật tham số;
    hai việc khác nhau, có thể thay Adam bằng SGD mà không đổi cách
@@ -1127,31 +1122,25 @@ viết tay chỉ dùng để đối chiếu và học cơ chế (xem câu G12).
    mạng. Và "lưu model là lưu cả preprocessor" cũng sai: checkpoint
    không chứa scaler/imputer/encoder hay thứ tự cột.
 
-### G12. Cái nào mới là "manual" thật, PyTorch cung cấp cái gì? 3 bản MLP khác nhau thế nào? Vì sao tách validation/test? Benchmark lịch sử có ý nghĩa gì?
+### G12. Cái nào mới là "manual" thật, PyTorch cung cấp cái gì? Hai bản MLP khác nhau thế nào? Vì sao tách validation/test?
 
 1. **Đáp ngắn:** "Manual" thật là tự viết công thức đạo hàm
    (chain rule) và bước cập nhật Adam; PyTorch cung cấp tensor,
    autograd, optimizer có sẵn, DataLoader và `state_dict`.
-   Ba bản MLP cùng kiến trúc, khác nhau ở ai tính gradient và ai
+   Hai bản MLP cùng kiến trúc, khác nhau ở ai tính gradient và ai
    cập nhật tham số. Validation để chọn, test để đo cuối; benchmark
    lịch sử chỉ để đối chiếu, không thay bảng chính thức.
 2. **Giải thích sâu:** Bảng phân biệt đầy đủ xem
    `docs/algorithms/mlp.md` mục 6. Tóm tắt: bản PyTorch chính thức
    dùng autograd + `torch.optim.Adam` (PyTorch làm cả hai việc);
-   bản NumPy viết tay cả backprop lẫn Adam bằng mảng NumPy; bản
-   PyTorch viết tay dùng tensor torch nhưng viết tay cả backprop
+   bản PyTorch viết tay dùng tensor torch nhưng viết tay cả backprop
    lẫn Adam, `requires_grad=False`, và test quét source cấm
    `backward()`/`autograd.grad`/`torch.optim` trong training path.
    DataLoader không tính là "không manual" vì nó chỉ nạp dữ liệu.
    Tách validation/test: mọi quyết định chọn mô hình và siêu tham
    số chỉ dựa trên validation (3.243 dòng); test (3.241 dòng) chỉ
    đo một lần cuối, vì dùng test để chọn thì điểm báo cáo lạc quan
-   giả (xem câu A5, A6). Benchmark lịch sử 17/11 (4 mô hình NumPy:
-   RF 0,8638, NumPy MLP 0,8354, Linear 0,8119, DT 0,7314) giữ lại
-   để chứng minh pipeline không đổi khi thêm PyTorch: 3 mô hình
-   NumPy cũ tái lập đúng số (lệch 0) trong bảng chính thức
-   19/11/2026, còn số test của bản NumPy MLP chỉ còn là lịch sử vì
-   bản đó đã ra khỏi bảng chính thức.
+   giả (xem câu A5, A6).
 3. **Tham chiếu source:** `docs/adr/008-mlp-pytorch.md`,
    `docs/adr/009-mlp-pytorch-manual.md`,
    `docs/progress_results.md` (bảng chính thức 19/11 và bảng lịch
@@ -1241,15 +1230,13 @@ viết tay chỉ dùng để đối chiếu và học cơ chế (xem câu G12).
    được sai số tương đối tối đa 1,739e-03 với eps 1e-3, và test đặt
    ngưỡng 1e-2: đủ rộng để chứa sai số làm tròn này nhưng vẫn đủ
    chặt để bắt lỗi đạo hàm thật (thiếu hệ số `2/n` của MSE sẽ lệch
-   cỡ `O(1)`). Bản NumPy dùng float64 nên cùng phép kiểm chứng chỉ
-   lệch khoảng 1,7e-08 với ngưỡng 1e-5. Kiểm chứng float64 trong `tests/test_mlp_torch_manual.py` (mạng 3 -> 4 -> 4 -> 1,
+   cỡ `O(1)`). Kiểm chứng float64 trong `tests/test_mlp_torch_manual.py` (mạng 3 -> 4 -> 4 -> 1,
    41 tham số, eps 1e-3, central difference) đo được sai số tương đối tối đa
    1,475e-11 và sai số tuyệt đối tối đa 8,517e-13 (ngưỡng 1e-7), nhỏ hơn kết quả
    float32 (1,739e-03) khoảng 8 bậc.
 3. **Tham chiếu source:** `tests/test_mlp_torch_manual.py`
    (`GRADIENT_TOLERANCE = 1e-2`, `FINITE_DIFF_EPS = 1e-3`, đo được
-   1,739e-03); `tests/test_mlp_gradient.py` (bản NumPy float64,
-   khoảng 1,7e-08, ngưỡng 1e-5);
+   1,739e-03);
    `src/house_price/models/mlp_torch_manual.py`, `_backward` và
    `mse_loss`.
 4. **Hiểu lầm thường gặp:** "Sai số 1,739e-03 nghĩa là chain rule
@@ -1304,6 +1291,6 @@ thì mở mục G tương ứng.
 | Vì sao bản manual đặt requires_grad=False? | Để training không qua autograd: tham số không ghi đồ thị nên backward() không có gì để vi phân; mọi gradient đều tính tay. (G13) |
 | Vì sao validation không cập nhật weights? | Validation chỉ đi qua _mse (forward + no_grad), không backward, không bước cập nhật; nó chỉ để theo dõi và chọn cấu hình. (G14) |
 | Vì sao gradient check float32 lệch hơn float64? | Epsilon máy float32 lớn hơn float64 khoảng 5e8 lần, finite difference trừ hai số gần bằng nhau nên khuếch đại sai số làm tròn; đo được 1,739e-03 với ngưỡng 1e-2. (G15) |
-| 3 bản MLP khác nhau thế nào? | Cùng kiến trúc 32-16-1; chính thức dùng autograd + Adam của torch, NumPy legacy viết tay bằng NumPy, bản viết tay viết tay bằng tensor torch; chỉ bản chính thức nằm trong benchmark. (G12) |
+| 2 bản MLP khác nhau thế nào? | Cùng kiến trúc 32-16-1; bản chính thức dùng autograd + Adam của torch, bản manual tự viết Backpropagation và Adam bằng tensor torch; chỉ bản chính thức nằm trong benchmark. (G12) |
 | Vì sao tách validation và test? | Validation để chọn mô hình và siêu tham số; test chỉ đo một lần cuối, dùng test để chọn thì điểm lạc quan giả. (A5) |
-| Kết quả chính là gì? | Test 19/11/2026, 3.241 dòng: RF R2 0,8638 tốt nhất, PyTorch MLP 0,8334, Linear 0,8119, DT 0,7314; bản NumPy MLP ngoài bảng (val 0,8310). (G12) |
+| Kết quả chính là gì? | Test 19/11/2026, 3.241 dòng: RF R2 0,8638 tốt nhất, PyTorch MLP 0,8334, Linear 0,8119, DT 0,7314. (G12) |

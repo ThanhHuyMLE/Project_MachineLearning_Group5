@@ -8,9 +8,7 @@ Bản MLP chính thức dùng PyTorch theo yêu cầu của cô giáo cho lab 4
 Linear, Decision Tree và Random Forest được cài đặt thủ công bằng
 NumPy, không dùng class mô hình của scikit-learn, TensorFlow hay
 Keras (xem [docs/adr/007-mo-hinh-numpy.md](docs/adr/007-mo-hinh-numpy.md)).
-MLP còn có hai bản ngoài bảng chính thức: bản NumPy legacy
-(`src/house_price/models/mlp.py`, giữ làm đối chiếu lịch sử) và bản
-PyTorch viết tay mang tính giáo dục
+MLP còn có bản PyTorch viết tay mang tính giáo dục
 (`src/house_price/models/mlp_torch_manual.py`, xem
 [docs/adr/009-mlp-pytorch-manual.md](docs/adr/009-mlp-pytorch-manual.md)).
 
@@ -18,8 +16,6 @@ PyTorch viết tay mang tính giáo dục
 > thức của 4 mô hình trên pipeline chuẩn 88 đặc trưng (chạy ngày
 > 19/11/2026 trên Ubuntu, tổng thời gian fit 143,58 giây trên test)
 > xem ở mục 4 và [docs/progress_results.md](docs/progress_results.md).
-> Bản NumPy MLP không thuộc bảng chính thức; chỉ chạy kèm bằng cờ
-> `--include-numpy-mlp` để so sánh thêm.
 
 ## 1. Bài toán
 
@@ -54,7 +50,7 @@ PyTorch viết tay mang tính giáo dục
 | Stage | Nội dung | File chính |
 |---|---|---|
 | Stage 01: Data Understanding & Preprocessing | Dữ liệu, EDA, kỹ thuật đặc trưng, chia tập, chuẩn hóa | `src/house_price/preprocessing.py`, `docs/king-county-dataset.md` |
-| Stage 02: MLP Architecture & Implementation | Kiến trúc và cài đặt MLP (PyTorch chính thức, NumPy legacy, PyTorch viết tay) | `src/house_price/models/mlp_torch.py`, `mlp.py`, `mlp_torch_manual.py`, `docs/algorithms/mlp.md` |
+| Stage 02: MLP Architecture & Implementation | Kiến trúc và cài đặt MLP bằng PyTorch | `src/house_price/models/mlp_torch.py`, `mlp_torch_manual.py`, `docs/algorithms/mlp.md` |
 | Stage 03: Model Training & Evaluation | Huấn luyện, đánh giá, trực quan hóa | `src/house_price/train_evaluate.py`, `src/house_price/evaluation.py`, `src/house_price/visualization.py` |
 | Stage 04: Model Benchmarking & Analysis | 3 mô hình đối chiếu, bảng so sánh 4 mô hình chính thức | `src/house_price/models/linear_regression.py`, `decision_tree.py`, `random_forest.py`, `src/house_price/model_comparison.py` |
 
@@ -81,15 +77,6 @@ Linear, rồi Decision Tree. Chạy mặc định trên validation
 (`--evaluation-split val`) ghi `outputs/metrics_val.csv` (RF R2 0,8617,
 PyTorch MLP 0,8287, Linear 0,8091, Decision Tree 0,7198).
 
-Mục so sánh thêm (ngoài bảng chính thức): bản NumPy MLP legacy, khi
-chạy kèm bằng cờ `--include-numpy-mlp`, đạt R2 0,8310 trên validation
-ngày 19/11/2026 (RMSE 149.625,96 USD, MAE 85.838,49 USD, MAPE
-17,1460%). Số test của bản này (R2 0,8354) là số lịch sử ngày
-17/11/2026, không thuộc bảng chính thức ngày 19/11; so với bản
-PyTorch chính thức trên test, bản NumPy hơn 0,0020 R2 nhưng thua
-0,26 điểm phần trăm MAPE. Chi tiết xem
-[docs/progress_results.md](docs/progress_results.md).
-
 Giới hạn test-peeking: tập test đã từng bị xem trong quá trình phát triển trước đây nên không còn nguyên vẹn thống kê; các số trên là đo thật của lần chạy này nhưng không được diễn giải như đánh giá độc lập chưa từng bị xem trước.
 
 Ghi chú về Linear Regression: số R2 0,8154 của Stage 03 là bản sklearn OLS, chỉ giữ làm lịch sử trong [docs/progress_results.md](docs/progress_results.md); số chính thức trong bảng trên là bản được cài đặt bằng thư viện NumPy với gradient descent (R2 0,8119).
@@ -114,12 +101,15 @@ docs/
   adr/                    # Architecture Decision Records
   algorithms/             # Giải thích từng thuật toán (mlp, linear, tree, forest)
 notebooks/
-  practice_04_mlp_regression.ipynb   # Notebook demo 14 bước của đề bài
+  practice_04_mlp_regression.ipynb   # Notebook trình bày 6 task của đề bài
   Report.md               # Báo cáo tổng hợp
 models/                   # Mô hình đã huấn luyện (.joblib/.json, gitignored)
 outputs/                  # Bảng metric, dự đoán, biểu đồ (gitignored)
 src/house_price/          # Code dùng chung của cả nhóm
+  artifacts.py            # Lưu preprocessor và manifest suy luận
   preprocessing.py        # Nạp dữ liệu, chia tập, chống rò rỉ dữ liệu
+  predict.py              # CLI dự đoán CSV mới bằng artifact đã lưu
+  report.py               # Sinh báo cáo Markdown/HTML từ metrics
   evaluation.py           # MSE, RMSE, MAE, R2, MAPE
   visualization.py        # Biểu đồ actual vs predicted, loss, so sánh
   model_comparison.py     # Bảng đối chiếu 4 mô hình
@@ -190,14 +180,7 @@ vào `outputs/linear_regression_parameters.json`. Gói `house_price`
 chưa cài trong môi trường ảo thì phải đặt `PYTHONPATH=src`; nếu đã
 `pip install -e .` thì có thể bỏ `PYTHONPATH=src`.
 
-So sánh thêm với bản NumPy MLP legacy (ngoài bảng chính thức):
-
-```bash
-PYTHONPATH=src python -m house_price.train_evaluate --include-numpy-mlp
-```
-
-Cờ này chỉ thêm bản NumPy vào cuối bảng để đối chiếu với các lần
-chạy cũ; nó không đổi 4 mô hình chính thức. Bản PyTorch viết tay
+Bản PyTorch viết tay
 (`MLPTorchManualModel`) không nằm trong pipeline benchmark; chạy
 riêng qua test `tests/test_mlp_torch_manual.py`.
 
@@ -219,6 +202,31 @@ PYTHONPATH=src python -m house_price.train_evaluate --data data/kc_house_data_Na
 Lưu ý: huấn luyện rừng 100 cây CART được cài đặt bằng thư viện NumPy có thể mất nhiều phút;
 xem thời gian chạy trong bảng benchmark của Stage 04.
 
+### Dự đoán dữ liệu mới
+
+Pipeline huấn luyện lưu thêm `preprocessor.joblib` và
+`inference_manifest.json` để dữ liệu mới dùng đúng median, scaler và
+one-hot encoder đã học từ train. Dự đoán một file CSV thô bằng MLP:
+
+```bash
+PYTHONPATH=src python -m house_price.predict \
+  --input data/new_houses.csv \
+  --artifact-dir outputs \
+  --output outputs/predictions_new.csv
+```
+
+CSV đầu vào cần các cột đặc trưng gốc; không bắt buộc có `price`. File
+kết quả giữ nguyên dữ liệu đầu vào và thêm `predicted_price`.
+
+### Sinh báo cáo từ kết quả đã lưu
+
+```bash
+PYTHONPATH=src python -m house_price.report --metrics outputs/metrics.csv
+```
+
+Lệnh này tạo `outputs/report.md` và `outputs/report.html` mà không
+huấn luyện lại mô hình.
+
 ## 9. Chạy kiểm thử
 
 ```bash
@@ -228,11 +236,11 @@ pytest
 Pytest đã cấu hình sẵn trong `pyproject.toml` (`testpaths = ["tests"]`,
 `pythonpath = ["src"]`) nên chạy từ thư mục gốc của repo, không cần
 cài gói trước. Các test kiểm tra hợp đồng module, tiền xử lý, chỉ số
-đánh giá, gradient của MLP và tính đúng đắn của từng mô hình (MLP có
-cả bản NumPy và bản PyTorch).
+đánh giá, gradient của MLP PyTorch viết tay và tính đúng đắn của từng
+mô hình.
 
-Bộ test có 129 test, đều pass trong lần chạy ngày 19/11/2026 trên
-Ubuntu (`venv-ml-linux`). Con số này là tại thời điểm đó; nếu bộ
+Bộ test có 126 test, đều pass trong lần chạy ngày 25/11/2026 trên
+`.venv` (Linux, Python 3.14). Con số này là tại thời điểm đó; nếu bộ
 test có thêm test mới thì xem báo cáo verify mới nhất trong
 [docs/progress_results.md](docs/progress_results.md).
 
@@ -281,7 +289,6 @@ Vai trò của 4 nhóm mô hình trong dự án:
 |---|---|---|---|
 | Standard PyTorch MLP | PyTorch | Autograd (`loss.backward()`) | Workflow và benchmark chính thức của Lab 4 |
 | Manual PyTorch MLP | PyTorch Tensor | Chain rule viết tay | Bằng chứng hiểu thuật toán và để kiểm chứng |
-| NumPy MLP | NumPy | Chain rule viết tay | Đối chiếu legacy mang tính giáo dục |
 | Các mô hình hồi quy còn lại (Linear, Decision Tree, Random Forest) | NumPy | Thuật toán viết tay | Baseline đối chiếu chính thức |
 
 Bản PyTorch viết tay là bằng chứng trung tâm cho thấy nhóm hiểu
@@ -297,13 +304,12 @@ NumPy, còn bản chính thức dùng đúng công cụ PyTorch chuẩn.
 | Mô hình | Cài đặt | Siêu tham số mặc định |
 |---|---|---|
 | PyTorch MLP Regression (chính thức) | PyTorch (`torch.nn`, DataLoader, MSELoss, Adam, autograd): kiến trúc 32-16-1, He init dạng chuẩn | lr 0.001, epochs 100, batch 32, random_state 42 |
-| MLP Regression (NumPy legacy, ngoài bảng chính thức) | Được cài đặt bằng thư viện NumPy: Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear), He init, Adam viết tay | lr 0.001, epochs 100, batch 32, beta1 0.9, beta2 0.999, epsilon 1e-8 |
 | PyTorch MLP viết tay (giáo dục, không benchmark) | Tensor torch, forward/backward/Adam viết tay bằng chain rule, `requires_grad=False`, không autograd, không `torch.optim` | lr 0.001, epochs 100, batch 32, beta1 0.9, beta2 0.999, epsilon 1e-8 |
 | Linear Regression | Được cài đặt bằng thư viện NumPy: batch gradient descent trên `X_aug = [1 \| X]` | lr 0.1, max_epochs 1000, tol 1e-6 (tương đối) |
 | Decision Tree Regression | CART được cài đặt bằng thư viện NumPy: chia theo MSE có trọng số, ngưỡng là trung điểm giá trị riêng biệt | max_depth không giới hạn, min_samples_split 2, min_samples_leaf 1 |
 | Random Forest Regression | Bagging trên cây CART, cả hai đều được cài đặt bằng thư viện NumPy, bootstrap qua SeedSequence | n_estimators 100, max_features mặc định ("sqrt") |
 
-Ba bản MLP dùng cùng kiến trúc 32-16-1 và cùng cấu hình; khác nhau
+Hai bản MLP dùng cùng kiến trúc 32-16-1 và cùng cấu hình; khác nhau
 ở cách tính gradient và cập nhật tham số (xem bảng phân biệt trong
 [docs/algorithms/mlp.md](docs/algorithms/mlp.md)).
 
@@ -338,12 +344,19 @@ Sau khi chạy pipeline, thư mục `outputs/` chứa:
 - `predictions.csv`: giá thật và giá dự đoán của từng mô hình trên test.
 - `mlp_torch_parameters.pt`: state_dict, cấu hình và loss history
   của MLP bản PyTorch chính thức.
+- `pytorch_mlp_regression_parameters.json`: kiến trúc, weights, biases
+  và lịch sử huấn luyện của MLP PyTorch.
+- `decision_tree_regression_parameters.json`: cấu hình và toàn bộ node
+  của Decision Tree.
+- `random_forest_regression_parameters.json`: cấu hình và toàn bộ 100
+  cây; trạng thái từng cây được nén trong JSON để giảm dung lượng.
+- `preprocessor.joblib`: median, scaler và one-hot encoder đã fit trên train.
+- `inference_manifest.json`: hợp đồng file và danh sách cột cho suy luận.
+- `predictions_new.csv`: dự đoán cho CSV mới khi chạy module `predict`.
+- `report.md`, `report.html`: báo cáo sinh từ bảng metrics đã lưu.
 - `mlp_torch_manual_parameters.pt`: weights/biases và cấu hình của
   bản PyTorch viết tay (chỉ có khi chạy bản manual riêng; không do
   pipeline benchmark sinh ra).
-- `mlp_parameters.json`: cấu hình, loss history, weights và biases
-  của MLP bản NumPy legacy (chỉ có khi chạy kèm
-  `--include-numpy-mlp`).
 - `linear_regression_parameters.json`: hệ số và hệ số chặn của Linear Regression.
 - `actual_vs_predicted_<model>.png`, `training_history_<model>.png`,
   `comparison_{rmse,mae,r2}.png`: biểu đồ đánh giá và so sánh.
@@ -358,8 +371,8 @@ Sau khi chạy pipeline, thư mục `outputs/` chứa:
   Tên biến, hàm, class, module viết bằng tiếng Anh.
 - Không ghi kết quả chưa chạy như kết quả đã kiểm chứng.
 - Linear, Decision Tree và Random Forest được cài đặt bằng thư viện NumPy;
-  MLP chính thức dùng PyTorch theo yêu cầu của cô giáo; bản NumPy
-  MLP chỉ giữ làm đối chiếu legacy, bản PyTorch viết tay chỉ phục vụ
+  MLP chính thức dùng PyTorch theo yêu cầu của cô giáo; bản PyTorch
+  viết tay chỉ phục vụ
   học backprop; sklearn chỉ dùng cho tiền xử lý và metrics (xem
   [docs/adr/007-mo-hinh-numpy.md](docs/adr/007-mo-hinh-numpy.md),
   [docs/adr/008-mlp-pytorch.md](docs/adr/008-mlp-pytorch.md) và

@@ -7,8 +7,8 @@ Chi tiết toán học và giải thích đầy đủ xem `docs/algorithms/`.
 Linear, Decision Tree và Random Forest được cài đặt bằng thư viện
 NumPy, không dùng estimator có sẵn của scikit-learn (xem
 `docs/adr/007-mo-hinh-numpy.md`); MLP chính thức dùng PyTorch (xem
-`docs/adr/008-mlp-pytorch.md`), bản NumPy MLP chỉ giữ làm đối chiếu
-legacy, bản PyTorch viết tay chỉ phục vụ học backprop (xem
+`docs/adr/008-mlp-pytorch.md`); bản PyTorch viết tay phục vụ học
+backprop (xem
 `docs/adr/009-mlp-pytorch-manual.md`).
 
 ## Quy trình chung (4 mô hình chính thức)
@@ -25,50 +25,8 @@ legacy, bản PyTorch viết tay chỉ phục vụ học backprop (xem
    zipcode: mode + one-hot), transform val/test
 4. Với mỗi mô hình chính thức: build_model -> fit(train) -> predict(test)
    (riêng PyTorch MLP: build_model(input_size) rồi fit(train, val))
-   Bản NumPy MLP chỉ chạy kèm bằng cờ `--include-numpy-mlp`.
 5. Tính MSE, RMSE, MAE, R2 cho từng mô hình trên cùng tập test
 6. So sánh và vẽ biểu đồ Actual vs Predicted
-```
-
-## MLP Regression (bản NumPy legacy, ngoài bảng chính thức)
-
-Mã giả dưới đây khớp với `MLPRegressorModel` trong
-`src/house_price/models/mlp.py`. Bản này chỉ chạy kèm bằng cờ
-`--include-numpy-mlp` để đối chiếu với các lần chạy cũ.
-
-```text
-ĐẦU VÀO: X_train (N x 88), y_train, X_val, y_val,
-         hidden (32, 16), epochs 100, batch 32,
-         learning_rate 0.001, beta1 0.9, beta2 0.999, epsilon 1e-8
-ĐẦU RA: y_pred; history_ (loss và val_loss từng epoch);
-        tham số lưu vào outputs/mlp_parameters.json
-
-THỦ TỤC INIT(hidden_layer_sizes, learning_rate, epochs, batch_size,
-             random_state, beta1, beta2, epsilon, save_path):
-    lưu cấu hình; weights_ <- RỖNG; biases_ <- RỖNG
-
-THỦ TỤC BUILD_MODEL(input_size):
-    layer_sizes <- (input_size, 32, 16, 1)
-    VỚI MỖI (fan_in, fan_out) trong layer_sizes:
-        W <- normal(0, sqrt(2/fan_in), size=(fan_in, fan_out))   # He init
-        b <- 0
-    khởi tạo các moment Adam (m, v cho W và b) bằng 0
-
-THỦ TỤC FIT(X_train, y_train, X_val=None, y_val=None):
-    NẾU model chưa build: BÁO LỖI, DỪNG
-    Với mỗi epoch:
-        xáo trộn train, chia mini-batch 32
-        Với mỗi batch: lan truyền tiến -> tính gradient MSE
-            -> lan truyền ngược -> Adam cập nhật trọng số
-            (Adam có hiệu chỉnh độ lệch m_hat, v_hat)
-        tính MSE trên toàn bộ train, ghi vào history_["loss"]
-        NẾU có validation: chỉ forward trên validation,
-            ghi MSE vào history_["val_loss"]
-    tự ghi cấu hình, history, weights và biases ra JSON
-
-HÀM PREDICT(X):
-    NẾU model chưa fit: BÁO LỖI, DỪNG
-    TRẢ VỀ forward propagation cho từng dòng X
 ```
 
 ## PyTorch MLP Regression (bản chính thức, 6 bước của cô giáo)
