@@ -9,11 +9,13 @@ from house_price.preprocessing import (
     FEATURE_COLUMNS,
     TARGET_COLUMN,
     prepare_data,
+    prepare_feature_frame,
 )
 
 __all__ = [
     "FEATURE_COLUMNS",
     "TARGET_COLUMN",
     "prepare_data",
+    "prepare_feature_frame",
     "regression_metrics",
 ]

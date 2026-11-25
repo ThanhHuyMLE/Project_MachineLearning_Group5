@@ -35,10 +35,9 @@ Dữ liệu: King County House Sales, 21.613 giao dịch từ tháng 5/2014
   viện NumPy theo quy tắc của nhóm (xem
   [adr/007-mo-hinh-numpy.md](adr/007-mo-hinh-numpy.md)): không dùng
   class mô hình của scikit-learn, không dùng TensorFlow/Keras.
-  NumPy chỉ được dùng cho phép tính mảng; không dùng thư viện để triển
-  khai MLP, Backpropagation, optimizer, cây CART hay bagging. Bản
-  NumPy MLP chỉ giữ làm đối chiếu legacy (ngoài bảng benchmark chính
-  thức); bản PyTorch viết tay chỉ phục vụ học backprop và vấn đáp
+  NumPy chỉ được dùng cho phép tính mảng của ba mô hình truyền thống;
+  MLP được triển khai bằng PyTorch. Bản PyTorch viết tay chỉ phục vụ
+  học backprop và vấn đáp
   (xem [adr/009-mlp-pytorch-manual.md](adr/009-mlp-pytorch-manual.md)).
 - scikit-learn chỉ dùng cho tiền xử lý (imputer, scaler, encoder, chia
   tập) và đo chỉ số (metrics).

@@ -7,12 +7,15 @@
 | `data/kc_house_data_NaN/data_raw/` | Dữ liệu King County gốc, không sửa |
 | `data/processed/` | Dữ liệu sinh ra khi chạy (gitignored) |
 | `src/house_price/preprocessing.py` | Nạp dữ liệu, chia tập, chống rò rỉ dữ liệu |
+| `src/house_price/artifacts.py` | Lưu preprocessor và manifest cho suy luận |
+| `src/house_price/predict.py` | Dự đoán CSV mới bằng MLP đã lưu |
+| `src/house_price/report.py` | Sinh báo cáo từ metrics đã lưu |
 | `src/house_price/models/` | Lớp mô hình theo mẫu 4 phương thức: MLP chính thức dùng PyTorch, 3 mô hình còn lại được cài đặt bằng thư viện NumPy |
 | `src/house_price/evaluation.py` | MSE, RMSE, MAE, R2, MAPE |
 | `src/house_price/visualization.py` | Biểu đồ đánh giá và so sánh |
 | `src/house_price/model_comparison.py` | Bảng đối chiếu 4 mô hình |
 | `src/house_price/train_evaluate.py` | Điều phối tròn pipeline |
-| `notebooks/` | Notebook demo 14 bước, báo cáo |
+| `notebooks/` | Notebook trình bày 6 task, báo cáo |
 | `models/` | Mô hình đã huấn luyện (gitignored, trừ .gitkeep) |
 | `outputs/` | Metric, dự đoán, biểu đồ (gitignored, trừ .gitkeep) |
 | `docs/` | Mô tả, thiết kế, kế hoạch, giải thích, tiến trình |
@@ -36,6 +39,8 @@ CSV gốc (21.613 dòng, 22 cột)
      zipcode bù mode + one-hot (70 mã) -> 88 cột đầu ra
   -> 4 mô hình chính thức huấn luyện trên train, chọn trên validation
   -> đánh giá cuối cùng trên test, vẽ biểu đồ, lưu outputs/
+  -> xuất trạng thái đã học của cả 4 mô hình sang JSON
+  -> lưu MLP + preprocessor + manifest để dự đoán dữ liệu mới
 ```
 
 Scaler và imputer chỉ học từ train; dùng cùng đối tượng đã fit để biến đổi
@@ -43,7 +48,6 @@ validation, test và nhà mới. Xem
 [adr/003-chia-train-validation-test.md](adr/003-chia-train-validation-test.md).
 
 ## Hợp đồng module
-
 ### Preprocessing (`preprocessing.py`)
 
 - `load_raw_dataset(path)` -> DataFrame thô.
@@ -51,6 +55,8 @@ validation, test và nhà mới. Xem
   `sqft_per_bedroom` (không fit gì, xem `adr/006-feature-engineering-va-zipcode.md`).
 - `clean_dataset(df)` -> DataFrame đã kỹ thuật đặc trưng và loại cột thừa,
   CHƯA bù khuyết hay chuẩn hóa (hai việc này nằm trong preprocessor).
+- `prepare_feature_frame(df)` -> 19 cột đầu vào cho suy luận; không yêu cầu
+  cột mục tiêu `price`.
 - `split_features_target(df)` -> `(X, y)`, `y` là cột `price`.
 - `split_train_val_test(X, y, groups=None)` -> 6 đối tượng theo tỷ lệ
   70/15/15, seed 42. Khi truyền `groups` (mã `id`) thì chia theo nhóm
@@ -106,11 +112,6 @@ Hợp đồng riêng từng mô hình:
   tự lưu state_dict vào `save_path` (mặc định
   `outputs/mlp_torch_parameters.pt`); `load(path)` nạp bằng
   `torch.load(..., map_location="cpu", weights_only=True)`.
-- `MLPRegressorModel` (`models/mlp.py`): bản NumPy legacy, cùng kiến
-  trúc và cấu hình, forward/backward/Adam viết tay bằng NumPy.
-  Ngoài bảng benchmark chính thức; chỉ chạy kèm bằng cờ
-  `--include-numpy-mlp`, lưu JSON vào
-  `outputs/mlp_parameters.json`.
 - `MLPTorchManualModel` (`models/mlp_torch_manual.py`): bản PyTorch
   viết tay mang tính giáo dục, cùng kiến trúc và cấu hình; forward/
   backward/Adam viết tay bằng tensor torch float32,
@@ -156,8 +157,7 @@ Hợp đồng riêng từng mô hình:
   `--evaluation-split` (`val` mặc định, ghi
   `outputs/metrics_val.csv`, `outputs/predictions_val.csv`, biểu đồ
   hậu tố `_val`; `test` cho đánh giá cuối, ghi `outputs/metrics.csv`,
-  `outputs/predictions.csv`, biểu đồ không hậu tố) và
-  `--include-numpy-mlp` (thêm bản NumPy MLP ngoài bảng chính thức).
+  `outputs/predictions.csv`, biểu đồ không hậu tố).
 - `build_models(output_dir)` tạo 4 mô hình chính thức; PyTorch MLP
   lưu tham số vào `output_dir/mlp_torch_parameters.pt`.
 - `train_and_evaluate(data, output_dir, evaluation_split="val")` fit MLP với `X_val`/`y_val`
@@ -165,8 +165,18 @@ Hợp đồng riêng từng mô hình:
   3 mô hình còn lại fit trên train; vẽ `actual_vs_predicted_<slug>.png`
   cho từng mô hình, `training_history_<slug>.png` khi có loss history,
   và `comparison_{rmse,mae,r2}.png`.
+- Sau khi fit, cả 4 mô hình chính thức xuất JSON có thể nạp lại;
+  PyTorch MLP vẫn giữ thêm checkpoint `.pt`.
 - Không viết logic mô hình hay metric trực tiếp trong file này;
   chỉ gọi các module chuyên trách.
+
+### Suy luận và báo cáo
+
+- `artifacts.py` lưu `preprocessor.joblib` và `inference_manifest.json`
+  bên cạnh checkpoint MLP.
+- `predict.py` tạo đặc trưng từ CSV mới, transform bằng preprocessor đã
+  fit trên train và thêm cột `predicted_price`.
+- `report.py` đọc bảng metrics để sinh Markdown/HTML, không huấn luyện lại.
 
 ## Quyết định kiến trúc (tóm tắt)
 
@@ -179,6 +189,6 @@ Hợp đồng riêng từng mô hình:
   module đó để demo và thí nghiệm, không viết class riêng trong notebook.
 - **MLP chính thức dùng PyTorch, 3 mô hình còn lại được cài đặt bằng
   thư viện NumPy** (xem `adr/008-mlp-pytorch.md` và
-  `adr/007-mo-hinh-numpy.md`, thay thế ADR-004). Bản NumPy MLP giữ
-  làm đối chiếu legacy, bản PyTorch viết tay chỉ phục vụ học backprop
+  `adr/007-mo-hinh-numpy.md`, thay thế ADR-004). Bản PyTorch viết tay
+  chỉ phục vụ học backprop
   (xem `adr/009-mlp-pytorch-manual.md`).

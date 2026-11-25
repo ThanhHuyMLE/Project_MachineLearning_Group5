@@ -50,6 +50,9 @@ Xem docs/algorithms/decision_tree.md.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 
 from house_price.models.base import BaseRegressorModel
@@ -210,6 +213,121 @@ class DecisionTreeRegressorModel(BaseRegressorModel):
                     node = node["right"]
             predictions[i] = node["value"]
         return predictions
+
+    def to_state(self, feature_names=None) -> dict[str, object]:
+        """Trả trạng thái đã học ở dạng chỉ gồm kiểu dữ liệu JSON."""
+        self._require_fitted()
+        nodes = [self.tree_]
+        rows = []
+        cursor = 0
+        while cursor < len(nodes):
+            node = nodes[cursor]
+            left_index = -1
+            right_index = -1
+            if not node["is_leaf"]:
+                left_index = len(nodes)
+                nodes.append(node["left"])
+                right_index = len(nodes)
+                nodes.append(node["right"])
+            rows.append(
+                [
+                    bool(node["is_leaf"]),
+                    float(node["value"]),
+                    int(node["n_samples"]),
+                    float(node["mse"]),
+                    int(node["depth"]),
+                    -1 if node["feature"] is None else int(node["feature"]),
+                    None if node["threshold"] is None else float(node["threshold"]),
+                    left_index,
+                    right_index,
+                ]
+            )
+            cursor += 1
+
+        if feature_names is not None and len(feature_names) != self.n_features_in_:
+            raise ValueError(
+                f"Có {len(feature_names)} tên đặc trưng nhưng cây có {self.n_features_in_} đặc trưng."
+            )
+        return {
+            "format_version": 1,
+            "model_type": "DecisionTreeRegressorModel",
+            "config": {
+                "max_depth": self.max_depth,
+                "min_samples_split": self.min_samples_split,
+                "min_samples_leaf": self.min_samples_leaf,
+                "max_features": self.max_features,
+                "min_impurity_decrease": self.min_impurity_decrease,
+                "random_state": self.random_state,
+            },
+            "n_features_in": self.n_features_in_,
+            "feature_names": None if feature_names is None else list(feature_names),
+            "feature_importances": self.feature_importances_.tolist(),
+            "node_fields": [
+                "is_leaf",
+                "value",
+                "n_samples",
+                "mse",
+                "depth",
+                "feature",
+                "threshold",
+                "left",
+                "right",
+            ],
+            "nodes": rows,
+        }
+
+    @classmethod
+    def from_state(cls, state: dict[str, object]) -> DecisionTreeRegressorModel:
+        """Khôi phục cây từ trạng thái JSON do :meth:`to_state` tạo."""
+        if state.get("model_type") != "DecisionTreeRegressorModel":
+            raise ValueError("JSON không chứa DecisionTreeRegressorModel.")
+        config = state["config"]
+        model = cls(**config).build_model()
+        rows = state["nodes"]
+        if not rows:
+            raise ValueError("JSON cây quyết định không có node.")
+
+        nodes = []
+        for row in rows:
+            nodes.append(
+                {
+                    "is_leaf": bool(row[0]),
+                    "value": float(row[1]),
+                    "n_samples": int(row[2]),
+                    "mse": float(row[3]),
+                    "depth": int(row[4]),
+                    "feature": None if int(row[5]) < 0 else int(row[5]),
+                    "threshold": None if row[6] is None else float(row[6]),
+                    "left": None,
+                    "right": None,
+                }
+            )
+        for node, row in zip(nodes, rows):
+            if not node["is_leaf"]:
+                node["left"] = nodes[int(row[7])]
+                node["right"] = nodes[int(row[8])]
+
+        model.tree_ = nodes[0]
+        model.model = model.tree_
+        model.n_features_in_ = int(state["n_features_in"])
+        model.feature_importances_ = np.asarray(state["feature_importances"], dtype=float)
+        model._is_fitted = True
+        return model
+
+    def export_json(self, path: str | Path, feature_names=None) -> Path:
+        """Xuất toàn bộ cấu trúc cây để có thể nạp lại và dự đoán."""
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(self.to_state(feature_names), ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        return target
+
+    @classmethod
+    def load_json(cls, path: str | Path) -> DecisionTreeRegressorModel:
+        """Nạp cây đã xuất bằng :meth:`export_json`."""
+        return cls.from_state(json.loads(Path(path).read_text(encoding="utf-8")))
 
     def _candidate_features(self, n_features: int, rng: np.random.Generator) -> np.ndarray:
         """Chỉ số đặc trưng ứng viên tại một nút (có thể lấy mẫu)."""

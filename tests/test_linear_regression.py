@@ -121,6 +121,16 @@ def test_export_params_writes_readable_json(tmp_path):
         model.export_params(tmp_path / "khac.json", feature_names=["chi-mot-ten"])
 
 
+def test_json_round_trip_preserves_predictions(tmp_path):
+    X, y, _, _ = _synthetic_data(n_samples=80)
+    model = _fitted_model(X, y)
+
+    path = model.export_json(tmp_path / "linear.json", feature_names=["a", "b", "c"])
+    loaded = LinearRegressorModel.load_json(path)
+
+    np.testing.assert_array_equal(loaded.predict(X), model.predict(X))
+
+
 def test_build_model_resets_fitted_state():
     X, y, _, _ = _synthetic_data(n_samples=20)
     model = _fitted_model(X, y)

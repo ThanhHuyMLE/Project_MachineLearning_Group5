@@ -178,3 +178,16 @@ def test_predict_with_wrong_shape_raises():
         model.predict(np.zeros((2, 2)))
     with pytest.raises(ValueError):
         model.predict(np.zeros(1))
+
+
+def test_json_round_trip_preserves_predictions(tmp_path):
+    rng = np.random.default_rng(12)
+    X = rng.normal(size=(60, 4))
+    y = 2.5 * X[:, 0] - X[:, 2] ** 2
+    model = _fit_model(X, y, max_depth=5)
+
+    path = model.export_json(tmp_path / "decision_tree.json", feature_names=["a", "b", "c", "d"])
+    loaded = DecisionTreeRegressorModel.load_json(path)
+
+    np.testing.assert_array_equal(loaded.predict(X), model.predict(X))
+    np.testing.assert_array_equal(loaded.feature_importances_, model.feature_importances_)

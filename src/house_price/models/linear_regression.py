@@ -176,6 +176,8 @@ class LinearRegressorModel(BaseRegressorModel):
                 f"Có {len(feature_names)} tên đặc trưng nhưng mô hình có {len(self._coef)} hệ số."
             )
         payload = {
+            "format_version": 1,
+            "model_type": "LinearRegressorModel",
             "model": "LinearRegression",
             "method": (
                 "Batch gradient descent viết tay bằng NumPy: "
@@ -189,9 +191,35 @@ class LinearRegressorModel(BaseRegressorModel):
                 for name, weight in zip(feature_names, self._coef)
             ],
             "learning_rate": self.learning_rate,
+            "max_epochs": self.max_epochs,
+            "tol": self.tol,
             "n_epochs": self.n_iter_,
+            "history": self.history_,
             "final_loss": self.history_["loss"][-1],
             "converged": self.converged_,
         }
         path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         return path
+
+    def export_json(self, path, feature_names=None):
+        """Tên thống nhất với các mô hình khác; giữ `export_params` để tương thích."""
+        return self.export_params(path, feature_names=feature_names)
+
+    @classmethod
+    def load_json(cls, path):
+        """Nạp hệ số đã học từ JSON do :meth:`export_json` tạo."""
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        if payload.get("model_type") != "LinearRegressorModel":
+            raise ValueError("JSON không chứa LinearRegressorModel.")
+        model = cls(
+            learning_rate=payload["learning_rate"],
+            max_epochs=payload["max_epochs"],
+            tol=payload["tol"],
+        ).build_model()
+        model._coef = np.asarray([item["weight"] for item in payload["coefficients"]], dtype=float)
+        model._intercept = float(payload["intercept"])
+        model.history_ = payload["history"]
+        model.n_iter_ = int(payload["n_epochs"])
+        model.converged_ = bool(payload["converged"])
+        model._is_fitted = True
+        return model

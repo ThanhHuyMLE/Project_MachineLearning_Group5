@@ -18,17 +18,10 @@ hình còn lại, nên ngoại lệ này chỉ áp dụng cho MLP.
 
 ## Các lựa chọn đã xem xét
 
-1. **Thêm bản PyTorch cho MLP, giữ bản NumPy làm đối chiếu (chọn):**
-   MLP có hai bản cài đặt cùng kiến trúc Dense(32, ReLU) ->
-   Dense(16, ReLU) -> Dense(1, Linear) và cùng cấu hình (Adam lr
-   0.001, epochs 100, batch 32, seed 42): bản NumPy cũ và bản PyTorch
-   mới (`torch.nn`, DataLoader, MSELoss, Adam, autograd). Benchmark
-   chạy cả hai và báo cáo cạnh nhau. Linear Regression, Decision Tree
-   và Random Forest không phải DNN nên giữ nguyên bản NumPy.
-2. **Viết lại toàn bộ MLP bằng PyTorch, xóa bản NumPy:** mất đối
-   chiếu đã kiểm chứng (gradient check 1,7e-08) và mất bằng chứng
-   rằng hai cách cài đặt cho cùng kết quả.
-3. **Giữ nguyên ADR-007, không dùng PyTorch:** vi phạm yêu cầu của
+1. **Dùng PyTorch cho toàn bộ MLP (chọn):** dùng `torch.nn`,
+   DataLoader, MSELoss, Adam và autograd. Linear Regression,
+   Decision Tree và Random Forest giữ nguyên cách cài đặt hiện tại.
+2. **Giữ nguyên ADR-007, không dùng PyTorch:** vi phạm yêu cầu của
    cô giáo cho lab 4.
 
 ## Quyết định
@@ -40,11 +33,8 @@ hình còn lại, nên ngoại lệ này chỉ áp dụng cho MLP.
   optimizer Adam, (4) training loop, (5) validation theo dõi val_loss
   mỗi epoch, (6) lưu và nạp lại mô hình bằng `state_dict`.
 - Bản PyTorch giữ nguyên interface chung `__init__` ->
-  `build_model` -> `fit` -> `predict` và cùng siêu tham số với bản
-  NumPy, để pipeline, benchmark và notebook không đổi cách gọi.
-- Bản NumPy `MLPRegressorModel` được giữ nguyên, không xóa, làm đối
-  chiếu. Benchmark chính thức chạy cả hai bản trên cùng tập test và
-  báo cáo cạnh nhau.
+  `build_model` -> `fit` -> `predict` để pipeline, benchmark và
+  notebook dùng thống nhất.
 - Linear Regression, Decision Tree và Random Forest giữ nguyên bản
   NumPy theo ADR-007; không dùng PyTorch hay estimator có sẵn cho
   ba mô hình này.
@@ -55,15 +45,12 @@ hình còn lại, nên ngoại lệ này chỉ áp dụng cho MLP.
 ## Kiểm chứng
 
 - Chạy ngày 19/11/2026 trên laptop Key (Ubuntu, Python 3.14,
-  torch 2.15.0+cpu): benchmark CLI 5 mô hình trên cùng tập test
+  torch 2.15.0+cpu): benchmark CLI 4 mô hình trên cùng tập test
   3.241 dòng, seed 42 (`PYTHONPATH=src python -m
   house_price.train_evaluate --evaluation-split test`).
 - PyTorch MLP: R2 test 0,8334, RMSE 154.778 USD, MAE 89.839 USD,
-  MAPE 17,7992%; bản NumPy: R2 test 0,8354, RMSE 153.881 USD,
-  MAE 90.392 USD, MAPE 18,0595%. Chênh lệch R2 chỉ 0,0020; MAE và
-  MAPE của bản PyTorch thấp hơn bản NumPy. Trên validation:
-  PyTorch R2 0,8287 so với NumPy R2 0,8310.
-- 4 mô hình còn lại tái lập đúng số benchmark ngày 17/11/2026
+  MAPE 17,7992%; R2 validation 0,8287.
+- 3 mô hình còn lại tái lập đúng số benchmark ngày 17/11/2026
   (Random Forest R2 0,8638, Linear R2 0,8119, Decision Tree R2
   0,7314), chứng tỏ pipeline không đổi.
 - Test: 109 passed (thêm 8 test cho `MLPTorchRegressorModel` và 1
@@ -77,15 +64,13 @@ hình còn lại, nên ngoại lệ này chỉ áp dụng cho MLP.
 > con số mới nhất xem báo cáo verify gần nhất và
 > `docs/progress_results.md`. Bảng benchmark chính thức cũng được
 > chốt lại bởi ADR-009: chỉ 4 mô hình (PyTorch MLP + Linear +
-> Decision Tree + Random Forest), bản NumPy MLP đứng ngoài bảng,
-> chỉ chạy kèm bằng cờ `--include-numpy-mlp`.
+> Decision Tree + Random Forest).
 - Notebook `notebooks/practice_04_mlp_regression.ipynb` chạy lại
   sạch, metrics trong notebook khớp benchmark CLI.
 
 ## Đánh đổi chấp nhận
 
-- Được: tuân thủ yêu cầu của cô giáo; có hai bản MLP đối chiếu nhau,
-  chứng minh kết quả không phụ thuộc backend.
+- Được: tuân thủ yêu cầu của cô giáo và dùng đúng workflow PyTorch.
 - Mất: thêm một dependency nặng (torch CPU khoảng 200 MB); benchmark
   chạy thêm khoảng 37 giây cho bản PyTorch; phải duy trì hai bản cài
   đặt cùng một kiến trúc.

@@ -41,7 +41,6 @@ ghi "dùng thư viện ML có sẵn" cũng được sửa theo quy tắc mới.
   giảng viên hỏi công thức và model param.
 - sklearn chỉ còn dùng cho tiền xử lý và metrics, không dùng cho model.
 - Cụ thể từng mô hình:
-  - MLP: lan truyền tiến/ngược và Adam được cài đặt bằng thư viện NumPy, khởi tạo He.
   - Linear Regression: batch gradient descent được cài đặt bằng thư viện NumPy trên ma trận thiết kế mở rộng `X_aug = [1 | X]`.
   - Decision Tree: cây CART được cài đặt bằng thư viện NumPy, chia theo MSE có trọng số.
   - Random Forest: bagging trên cây CART, cả hai đều được cài đặt bằng thư viện NumPy, trung bình dự đoán các cây.
@@ -59,11 +58,6 @@ ghi "dùng thư viện ML có sẵn" cũng được sửa theo quy tắc mới.
   rõ quá trình học theo từng epoch và khớp với `history_` loss.
   Nghiệm dạng đóng chỉ còn dùng trong test để đối chiếu tính đúng
   đắn, không dùng để fit.
-- **MLP (xong, Stage 02 và Stage 03):** `MLPRegressorModel` trong
-  `src/house_price/models/mlp.py`: Dense(32, ReLU) -> Dense(16, ReLU)
-  -> Dense(1, Linear), He init, Adam có bias-correction, mini-batch
-  + shuffle, theo dõi `val_loss`, lưu JSON tham số. Gradient check:
-  sai số tương đối tối đa khoảng 1,7e-08 (< 1e-5).
 - **Decision Tree (xong, Stage 04):** `DecisionTreeRegressorModel`
   trong `src/house_price/models/decision_tree.py`: CART được cài đặt bằng thư viện NumPy,
   ngưỡng là trung điểm giá trị riêng biệt liên tiếp, tìm kiếm bằng
