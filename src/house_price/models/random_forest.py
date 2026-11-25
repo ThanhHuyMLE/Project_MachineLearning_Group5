@@ -57,6 +57,11 @@ Giới hạn:
 
 from __future__ import annotations
 
+import base64
+import json
+import zlib
+from pathlib import Path
+
 import numpy as np
 
 from house_price.models.base import BaseRegressorModel
@@ -162,3 +167,70 @@ class RandomForestRegressorModel(BaseRegressorModel):
             [np.asarray(tree.predict(X), dtype=float) for tree in self.trees_]
         )
         return predictions.mean(axis=1)
+
+    def export_json(self, path: str | Path, feature_names=None) -> Path:
+        """Xuất toàn bộ rừng; mỗi cây được nén riêng trong tài liệu JSON.
+
+        Cây đầy đủ có rất nhiều node. Nén từng trạng thái JSON bằng zlib
+        giúp artifact vẫn là một file JSON nhưng không phình lên hàng trăm MB.
+        """
+        self._require_fitted()
+        if feature_names is not None and len(feature_names) != self.n_features_in_:
+            raise ValueError(
+                f"Có {len(feature_names)} tên đặc trưng nhưng rừng có "
+                f"{self.n_features_in_} đặc trưng."
+            )
+
+        encoded_trees = []
+        for tree in self.trees_:
+            raw_state = json.dumps(tree.to_state(), separators=(",", ":")).encode("utf-8")
+            encoded_trees.append(
+                base64.b64encode(zlib.compress(raw_state, level=9)).decode("ascii")
+            )
+
+        payload = {
+            "format_version": 1,
+            "model_type": "RandomForestRegressorModel",
+            "config": {
+                "n_estimators": self.n_estimators,
+                "max_depth": self.max_depth,
+                "min_samples_split": self.min_samples_split,
+                "min_samples_leaf": self.min_samples_leaf,
+                "max_features": self.max_features,
+                "random_state": self.random_state,
+            },
+            "n_features_in": self.n_features_in_,
+            "feature_names": None if feature_names is None else list(feature_names),
+            "trees_encoding": "zlib+base64+json",
+            "trees": encoded_trees,
+        }
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        return target
+
+    @classmethod
+    def load_json(cls, path: str | Path) -> RandomForestRegressorModel:
+        """Nạp rừng đã xuất bằng :meth:`export_json`."""
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        if payload.get("model_type") != "RandomForestRegressorModel":
+            raise ValueError("JSON không chứa RandomForestRegressorModel.")
+        if payload.get("trees_encoding") != "zlib+base64+json":
+            raise ValueError("Kiểu mã hóa cây trong JSON không được hỗ trợ.")
+
+        model = cls(**payload["config"]).build_model()
+        trees = []
+        for encoded in payload["trees"]:
+            raw_state = zlib.decompress(base64.b64decode(encoded)).decode("utf-8")
+            trees.append(DecisionTreeRegressorModel.from_state(json.loads(raw_state)))
+        if len(trees) != model.n_estimators:
+            raise ValueError(
+                f"JSON có {len(trees)} cây nhưng cấu hình yêu cầu {model.n_estimators}."
+            )
+        model.trees_ = trees
+        model.n_features_in_ = int(payload["n_features_in"])
+        model._is_fitted = True
+        return model

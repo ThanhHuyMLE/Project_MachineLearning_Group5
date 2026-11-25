@@ -138,6 +138,21 @@ def engineer_features(frame: pd.DataFrame) -> pd.DataFrame:
     return engineered
 
 
+def prepare_feature_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Tạo đúng 19 cột đầu vào từ dữ liệu thô, kể cả khi chưa có ``price``.
+
+    Hàm này dùng chung cho huấn luyện và suy luận. Nó chỉ tạo đặc trưng,
+    loại cột không dùng và sắp xếp cột theo hợp đồng dữ liệu; không học
+    median, scaler hay one-hot encoder.
+    """
+    engineered = engineer_features(frame)
+    prepared = engineered.drop(columns=[c for c in DROP_COLUMNS if c in engineered.columns])
+    missing = [c for c in FEATURE_COLUMNS if c not in prepared.columns]
+    if missing:
+        raise ValueError(f"Dữ liệu thiếu các cột đặc trưng: {missing}")
+    return prepared[FEATURE_COLUMNS].copy()
+
+
 def clean_dataset(frame: pd.DataFrame) -> pd.DataFrame:
     """Kỹ thuật đặc trưng rồi loại cột thừa, CHƯA bù khuyết hay chuẩn hóa.
 
@@ -145,12 +160,10 @@ def clean_dataset(frame: pd.DataFrame) -> pd.DataFrame:
     để đảm bảo chỉ fit trên tập train. Hàm này chỉ tạo đặc trưng mới,
     loại cột ``id``/``date``/index và kiểm tra đủ 19 cột đặc trưng đầu vào.
     """
-    engineered = engineer_features(frame)
-    cleaned = engineered.drop(columns=[c for c in DROP_COLUMNS if c in engineered.columns])
-    missing = [c for c in FEATURE_COLUMNS if c not in cleaned.columns]
-    if missing:
-        raise ValueError(f"Dữ liệu thiếu các cột đặc trưng: {missing}")
-    return cleaned[FEATURE_COLUMNS + [TARGET_COLUMN]]
+    if TARGET_COLUMN not in frame.columns:
+        raise ValueError(f"Dữ liệu huấn luyện thiếu cột mục tiêu '{TARGET_COLUMN}'.")
+    features = prepare_feature_frame(frame)
+    return features.assign(**{TARGET_COLUMN: frame[TARGET_COLUMN].to_numpy()})
 
 
 def split_features_target(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:

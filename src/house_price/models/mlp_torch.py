@@ -1,6 +1,6 @@
 """MLP Regression bằng PyTorch cho bài toán giá nhà King County.
 
-Kiến trúc mặc định (giống hệt bản NumPy):
+Kiến trúc mặc định:
 Dense(32, ReLU) -> Dense(16, ReLU) -> Dense(1, Linear)
 
 Thực hiện theo 6 bước huấn luyện DNN bằng PyTorch trong slide của cô giáo:
@@ -10,12 +10,11 @@ Thực hiện theo 6 bước huấn luyện DNN bằng PyTorch trong slide của
 4. Viết training loop.
 5. Validation (theo dõi val_loss mỗi epoch).
 6. Lưu và nạp lại mô hình (state_dict).
-
-Bản NumPy (house_price/models/mlp.py) được giữ nguyên làm đối chiếu.
 """
 
 from __future__ import annotations
 
+import json
 import random
 from itertools import pairwise
 from pathlib import Path
@@ -37,8 +36,7 @@ class _MLPNetwork(nn.Module):
         layers: list[nn.Module] = []
         for fan_in, fan_out in pairwise(layer_sizes):
             linear = nn.Linear(fan_in, fan_out)
-            # He initialization dạng chuẩn (normal) cho mọi tầng, giống
-            # bản NumPy (rng.normal với scale sqrt(2 / fan_in)); bias 0.
+            # He initialization dạng chuẩn (normal) cho mọi tầng; bias 0.
             nn.init.kaiming_normal_(linear.weight, a=0, mode="fan_in", nonlinearity="relu")
             nn.init.zeros_(linear.bias)
             layers.append(linear)
@@ -226,6 +224,37 @@ class MLPTorchRegressorModel(BaseRegressorModel):
         torch.save(checkpoint, save_path)
         return save_path
 
+    def export_json(self, path: str | Path, feature_names=None) -> Path:
+        """Xuất kiến trúc, trọng số và bias sang JSON có thể nạp lại."""
+        self._require_fitted()
+        if feature_names is not None and len(feature_names) != self._input_size:
+            raise ValueError(
+                f"Có {len(feature_names)} tên đặc trưng nhưng MLP có {self._input_size} đầu vào."
+            )
+        payload = {
+            "format_version": 1,
+            "model_type": "MLPTorchRegressorModel",
+            "input_size": self._input_size,
+            "feature_names": None if feature_names is None else list(feature_names),
+            "hidden_layer_sizes": list(self.hidden_layer_sizes),
+            "learning_rate": self.learning_rate,
+            "epochs": self.epochs,
+            "batch_size": self.batch_size,
+            "random_state": self.random_state,
+            "state_dict": {
+                name: tensor.detach().cpu().tolist()
+                for name, tensor in self.network.state_dict().items()
+            },
+            "history": self.history_,
+        }
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        return target
+
     @classmethod
     def load(cls, path: str | Path) -> MLPTorchRegressorModel:
         """Nạp mô hình đã lưu (bước 6: Load)."""
@@ -242,5 +271,30 @@ class MLPTorchRegressorModel(BaseRegressorModel):
         model.build_model(input_size=checkpoint["input_size"])
         model.network.load_state_dict(checkpoint["state_dict"])
         model.history_ = checkpoint.get("history")
+        model._is_fitted = True
+        return model
+
+    @classmethod
+    def load_json(cls, path: str | Path) -> MLPTorchRegressorModel:
+        """Nạp MLP từ JSON do :meth:`export_json` tạo."""
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        if payload.get("model_type") != "MLPTorchRegressorModel":
+            raise ValueError("JSON không chứa MLPTorchRegressorModel.")
+        model = cls(
+            hidden_layer_sizes=tuple(payload["hidden_layer_sizes"]),
+            learning_rate=payload["learning_rate"],
+            epochs=payload["epochs"],
+            batch_size=payload["batch_size"],
+            random_state=payload["random_state"],
+            save_path=path,
+        )
+        model.build_model(input_size=payload["input_size"])
+        template = model.network.state_dict()
+        state_dict = {
+            name: torch.tensor(values, dtype=template[name].dtype)
+            for name, values in payload["state_dict"].items()
+        }
+        model.network.load_state_dict(state_dict)
+        model.history_ = payload.get("history")
         model._is_fitted = True
         return model

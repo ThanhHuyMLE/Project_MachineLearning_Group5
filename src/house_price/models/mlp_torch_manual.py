@@ -10,9 +10,8 @@ trực tiếp, tham số đặt requires_grad=False để chứng minh training 
 không đi qua autograd.
 
 Lưu ý quan trọng:
-- Đây là bản giáo dục, KHÔNG hứa parity bit-for-bit với bản NumPy
-  (house_price/models/mlp.py) hay bản PyTorch chính thức
-  (house_price/models/mlp_torch.py): thứ tự phép tính số thực, cách xáo
+- Đây là bản giáo dục, KHÔNG hứa parity bit-for-bit với bản PyTorch
+  chính thức (house_price/models/mlp_torch.py): thứ tự phép tính số thực, cách xáo
   trộn mini-batch và cách khởi tạo có thể khác nhau nên kết quả số có
   thể lệch nhỏ dù cùng kiến trúc và siêu tham số.
 - Autograd KHÔNG phải backprop viết tay: autograd tự xây đồ thị tính

@@ -1,12 +1,7 @@
 """Điều phối pipeline huấn luyện và đánh giá các mô hình hồi quy.
 
-Benchmark chính thức gồm 4 mô hình, tất cả đều cài đặt viết tay:
-PyTorch MLP Regression, Linear Regression, Decision Tree Regression
-và Random Forest Regression (rừng dùng cây CART viết tay). MLP NumPy
-("MLP Regression", cùng kiến trúc với bản PyTorch nhưng cài đặt bằng
-NumPy) không thuộc bảng chính thức; nó chỉ chạy khi bật cờ
---include-numpy-mlp, để so sánh thêm với các lần chạy cũ, và luôn
-được ghi rõ là ngoài bảng chính thức.
+Benchmark chính thức gồm 4 mô hình: PyTorch MLP Regression, Linear
+Regression, Decision Tree Regression và Random Forest Regression.
 """
 
 from __future__ import annotations
@@ -19,12 +14,12 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+from house_price.artifacts import save_inference_artifacts
 from house_price.evaluation import regression_metrics
 from house_price.model_comparison import compare_models
 from house_price.models import (
     DecisionTreeRegressorModel,
     LinearRegressorModel,
-    MLPRegressorModel,
     MLPTorchRegressorModel,
     RandomForestRegressorModel,
 )
@@ -48,7 +43,7 @@ DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs"
 # - PyTorch MLP: kiến trúc Dense(32, ReLU) -> Dense(16, ReLU) ->
 #   Dense(1, Linear), Adam, 100 epoch, batch 32; huấn luyện bằng
 #   torch.nn, DataLoader, MSELoss và Adam (yêu cầu của cô giáo, xem
-#   ADR-008). Kiến trúc và cấu hình giống bản MLP NumPy.
+#   ADR-008).
 # - Linear: batch gradient descent viết tay, lr=0.1, tối đa 1000 epoch,
 #   dừng sớm khi thay đổi tương đối của loss < tol=1e-6.
 #   Đo trên validation: val R2 0.8091 (fit 1.96s).
@@ -76,20 +71,12 @@ BENCHMARK_CONFIG = {
     },
 }
 
-# Cấu hình của MLP NumPy, chỉ dùng khi bật --include-numpy-mlp.
-# Không thuộc BENCHMARK_CONFIG chính thức.
-NUMPY_MLP_CONFIG = {"epochs": 100, "batch_size": 32}
-
 MODEL_NAMES = [
     "PyTorch MLP Regression",
     "Linear Regression",
     "Decision Tree Regression",
     "Random Forest Regression",
 ]
-
-# Tên của MLP NumPy trong bảng so sánh khi chạy kèm cờ
-# --include-numpy-mlp. Luôn đứng ngoài 4 mô hình chính thức.
-NUMPY_MLP_NAME = "MLP Regression"
 
 # Tập đánh giá -> (nhãn hiển thị, hậu tố tên file output). Split "test"
 # giữ tên file cũ để tương thích ngược; split "val" thêm hậu tố "_val"
@@ -110,16 +97,10 @@ def _evaluation_split_info(evaluation_split: str) -> tuple[str, str]:
         ) from None
 
 
-def build_models(
-    output_dir: str | Path = DEFAULT_OUTPUT_DIR,
-    include_numpy_mlp: bool = False,
-) -> dict[str, object]:
+def build_models(output_dir: str | Path = DEFAULT_OUTPUT_DIR) -> dict[str, object]:
     """Tạo 4 mô hình chính thức với cấu hình benchmark trong BENCHMARK_CONFIG.
 
-    Mô hình MLP mặc định là bản PyTorch, không phải bản NumPy.
-    Truyền ``include_numpy_mlp=True`` để thêm MLP NumPy
-    (``"MLP Regression"``, lưu tham số vào ``outputs/mlp_parameters.json``)
-    vào cuối danh sách, ngoài bảng chính thức, chỉ phục vụ so sánh thêm.
+    Mô hình MLP được cài đặt hoàn toàn bằng PyTorch.
     """
     output_dir = Path(output_dir)
     mlp_torch_config = BENCHMARK_CONFIG["PyTorch MLP Regression"]
@@ -127,7 +108,7 @@ def build_models(
     tree_config = BENCHMARK_CONFIG["Decision Tree Regression"]
     forest_config = BENCHMARK_CONFIG["Random Forest Regression"]
 
-    models: dict[str, object] = {
+    return {
         "PyTorch MLP Regression": MLPTorchRegressorModel(
             epochs=mlp_torch_config["epochs"],
             batch_size=mlp_torch_config["batch_size"],
@@ -147,20 +128,12 @@ def build_models(
             max_features=forest_config["max_features"],
         ),
     }
-    if include_numpy_mlp:
-        models[NUMPY_MLP_NAME] = MLPRegressorModel(
-            epochs=NUMPY_MLP_CONFIG["epochs"],
-            batch_size=NUMPY_MLP_CONFIG["batch_size"],
-            save_path=output_dir / "mlp_parameters.json",
-        )
-    return models
 
 
 def train_and_evaluate(
     data: dict[str, object],
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
     evaluation_split: str = "val",
-    include_numpy_mlp: bool = False,
 ) -> tuple[pd.DataFrame, dict[str, object]]:
     """Fit 4 mô hình chính thức trên train và đánh giá trên tập đã chọn.
 
@@ -169,8 +142,7 @@ def train_and_evaluate(
     test. Mọi mô hình chỉ fit trên train; X_val vẫn dùng để theo dõi
     val_loss khi fit MLP. Linear, Decision Tree và Random Forest chỉ
     nhận X_train/y_train nên validation không lấn vào quá trình fit
-    của ba mô hình này. Truyền ``include_numpy_mlp=True`` để thêm MLP
-    NumPy vào run, ngoài bảng chính thức, chỉ để so sánh thêm.
+    của ba mô hình này.
 
     Mọi mô hình trong BENCHMARK_CONFIG đều bắt buộc: nếu mô hình nào
     chưa được cài đặt (NotImplementedError) thì run FAIL ngay với lỗi
@@ -184,24 +156,18 @@ def train_and_evaluate(
     else:
         X_eval, y_eval = data["X_test"], data["y_test"]
     print(f"Evaluation split: {split_label}", flush=True)
-    if include_numpy_mlp:
-        print(
-            f"Ghi chú: {NUMPY_MLP_NAME} (NumPy) chạy ngoài bảng chính thức, chỉ để so sánh thêm.",
-            flush=True,
-        )
-
     output_dir = Path(output_dir)
     results: dict[str, dict[str, float | None]] = {}
     predictions: dict[str, object] = {}
     fit_seconds: dict[str, float] = {}
 
-    models = build_models(output_dir, include_numpy_mlp=include_numpy_mlp)
-    expected_names = MODEL_NAMES + ([NUMPY_MLP_NAME] if include_numpy_mlp else [])
+    models = build_models(output_dir)
+    expected_names = MODEL_NAMES
 
     for name, model in models.items():
         fit_start = time.perf_counter()
         try:
-            if isinstance(model, (MLPRegressorModel, MLPTorchRegressorModel)):
+            if isinstance(model, MLPTorchRegressorModel):
                 model.build_model(input_size=data["X_train"].shape[1])
 
                 if "X_val" in data and "y_val" in data:
@@ -226,14 +192,13 @@ def train_and_evaluate(
         fit_seconds[name] = time.perf_counter() - fit_start
         print(f"Fit {name}: {fit_seconds[name]:.2f} giây", flush=True)
 
-        # Xuất tham số đã học cho mô hình hỗ trợ export_params (Linear).
-        # MLP NumPy tự lưu tham số thành JSON trong fit qua save_path;
-        # MLP PyTorch tự lưu state_dict thành .pt trong fit qua save_path.
-        export_params = getattr(model, "export_params", None)
-        if callable(export_params):
+        # Xuất trạng thái đã học của mọi mô hình chính thức sang JSON.
+        # MLP PyTorch vẫn giữ thêm checkpoint .pt để suy luận nhanh.
+        export_json = getattr(model, "export_json", None)
+        if callable(export_json):
             slug = name.lower().replace(" ", "_")
             feature_names = data.get("feature_columns")
-            export_params(
+            export_json(
                 output_dir / f"{slug}_parameters.json",
                 feature_names=feature_names,
             )
@@ -308,13 +273,6 @@ def main(argv: list[str] | None = None) -> int:
         "dùng khi chọn/tinh chỉnh cấu hình) hoặc 'test' (đánh giá cuối, chỉ "
         "dùng một lần sau khi đã chốt cấu hình)",
     )
-    parser.add_argument(
-        "--include-numpy-mlp",
-        action="store_true",
-        help='Thêm MLP NumPy ("MLP Regression") vào run để so sánh thêm; '
-        "mặc định tắt, bảng chính thức chỉ gồm 4 mô hình "
-        "(PyTorch MLP, Linear, Decision Tree, Random Forest)",
-    )
     args = parser.parse_args(argv)
 
     output_dir = Path(args.output_dir)
@@ -328,7 +286,6 @@ def main(argv: list[str] | None = None) -> int:
         data,
         output_dir,
         evaluation_split=args.evaluation_split,
-        include_numpy_mlp=args.include_numpy_mlp,
     )
 
     metrics_file = output_dir / f"metrics{suffix}.csv"
@@ -346,6 +303,10 @@ def main(argv: list[str] | None = None) -> int:
             output_dir / f"predictions{suffix}.csv",
             index=False,
         )
+
+    if "preprocessor" in data:
+        manifest_path = save_inference_artifacts(data, output_dir)
+        print(f"Đã lưu artifact suy luận: {manifest_path.name}")
 
     print(table.to_string(index=False))
     print(f"\nTổng thời gian chạy: {time.perf_counter() - started:.2f} giây")
