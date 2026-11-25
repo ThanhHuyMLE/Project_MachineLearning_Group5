@@ -20,6 +20,11 @@ dependencies = [
   "torch>=2.9,<3",
 ]
 
+[project.scripts]
+house-price-train = "house_price.train_evaluate:main"
+house-price-predict = "house_price.predict:main"
+house-price-report = "house_price.report:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
 notebook = ["jupyterlab>=4.0", "ipykernel>=6.0"]
